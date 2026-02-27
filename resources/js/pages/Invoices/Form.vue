@@ -51,7 +51,7 @@ const form = useForm({
     tax_rate: props.invoice?.tax_rate ?? props.defaultTaxRate,
     notes: props.invoice?.notes ?? props.defaultNotes,
     is_rounded: props.invoice?.is_rounded ?? false,
-    items: (props.invoice?.items ?? [{ description: '', quantity: 1, unit_price: 0, total: 0 }]) as InvoiceItem[],
+    items: (props.invoice?.items ? props.invoice.items.map(i => ({ ...i, quantity: Number(i.quantity) })) : [{ description: '', quantity: 1, unit_price: 0, total: 0 }]) as InvoiceItem[],
 });
 
 function addItem() {
@@ -261,12 +261,14 @@ function submit() {
                                 }"
                             >
                                 <div class="grid gap-4 sm:gap-6 sm:grid-cols-12 items-start pl-8 sm:pl-0">
-                                    <div class="absolute left-2 sm:left-2 sm:-ml-2 top-11 sm:top-[42px] flex cursor-move text-muted-foreground/40 hover:text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 transition-all p-1">
-                                        <GripVertical class="h-5 w-5" />
-                                    </div>
                                     <div class="sm:col-span-6 space-y-2 lg:ml-2">
                                         <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Description</Label>
-                                        <Input v-model="item.description" required placeholder="Project consultation, Development..." class="h-11 bg-background border-border/40 rounded-xl shadow-sm focus:ring-primary/10" />
+                                        <div class="relative">
+                                            <div class="absolute -left-11 sm:-left-8 top-1/2 -translate-y-1/2 flex cursor-move text-muted-foreground/40 hover:text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 transition-all p-1">
+                                                <GripVertical class="h-5 w-5" />
+                                            </div>
+                                            <Input v-model="item.description" required placeholder="Project consultation, Development..." class="h-11 bg-background border-border/40 rounded-xl shadow-sm focus:ring-primary/10" />
+                                        </div>
                                     </div>
                                     <div class="sm:col-span-2 space-y-2">
                                         <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1 text-center block">Qty</Label>
