@@ -1,0 +1,769 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Neo-SaaS Admin</title>
+    
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body x-data="{ sidebarOpen: false, openSubmenus: {} }">
+    
+    <!-- Mobile Sidebar Overlay -->
+    <div 
+        x-show="sidebarOpen" 
+        x-transition:enter="transition-opacity duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity duration-300"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @click="sidebarOpen = false"
+        class="sidebar-overlay lg:hidden"
+    ></div>
+
+    <!-- Sidebar -->
+    <aside 
+        class="sidebar"
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+    >
+        <!-- Logo -->
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+                    <i data-lucide="layers" class="h-5 w-5 text-primary-foreground"></i>
+                </div>
+                <span class="text-lg font-semibold text-sidebar-foreground">Dashboard</span>
+            </a>
+            <button @click="sidebarOpen = false" class="btn btn-ghost btn-icon-sm lg:hidden">
+                <i data-lucide="chevron-left" class="h-4 w-4"></i>
+            </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="sidebar-nav">
+            <div class="space-y-1">
+                <!-- Dashboard - Active -->
+                <a href="dashboard.html" class="sidebar-menu-item active">
+                    <i data-lucide="layout-dashboard" class="h-5 w-5"></i>
+                    <span>Dashboard</span>
+                    <span class="ml-auto h-2 w-2 rounded-full bg-primary"></span>
+                </a>
+
+                <!-- Analytics -->
+                <a href="#" class="sidebar-menu-item">
+                    <i data-lucide="bar-chart-3" class="h-5 w-5"></i>
+                    <span>Analytics</span>
+                </a>
+
+                <!-- Invoice - With Submenu -->
+                <div>
+                    <button 
+                        @click="openSubmenus.invoice = !openSubmenus.invoice"
+                        class="sidebar-menu-item w-full justify-between"
+                        :class="openSubmenus.invoice ? 'sidebar-menu-item-parent active' : ''"
+                    >
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="file-spreadsheet" class="h-5 w-5"></i>
+                            <span>Invoice</span>
+                        </div>
+                        <i data-lucide="chevron-down" class="h-4 w-4 transition-transform duration-200" :class="openSubmenus.invoice ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div 
+                        class="sidebar-submenu"
+                        :style="openSubmenus.invoice ? 'max-height: 200px; opacity: 1' : 'max-height: 0; opacity: 0'"
+                    >
+                        <div class="py-1">
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-primary"></span>
+                                <span>All Invoices</span>
+                            </a>
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-success"></span>
+                                <span>Create Invoice</span>
+                            </a>
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-info"></span>
+                                <span>Invoice Templates</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- AI Application - With Submenu -->
+                <div>
+                    <button 
+                        @click="openSubmenus.ai = !openSubmenus.ai"
+                        class="sidebar-menu-item w-full justify-between"
+                        :class="openSubmenus.ai ? 'sidebar-menu-item-parent active' : ''"
+                    >
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="cpu" class="h-5 w-5"></i>
+                            <span>AI Application</span>
+                        </div>
+                        <i data-lucide="chevron-down" class="h-4 w-4 transition-transform duration-200" :class="openSubmenus.ai ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div 
+                        class="sidebar-submenu"
+                        :style="openSubmenus.ai ? 'max-height: 300px; opacity: 1' : 'max-height: 0; opacity: 0'"
+                    >
+                        <div class="py-1">
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-primary"></span>
+                                <span>Text Generator</span>
+                            </a>
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-warning"></span>
+                                <span>Code Generator</span>
+                            </a>
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-info"></span>
+                                <span>Image Generator</span>
+                            </a>
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-destructive"></span>
+                                <span>Voice Generator</span>
+                            </a>
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-success"></span>
+                                <span>Video Generator</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Customers -->
+                <a href="#" class="sidebar-menu-item">
+                    <i data-lucide="users" class="h-5 w-5"></i>
+                    <span>Customers</span>
+                </a>
+
+                <!-- Orders -->
+                <a href="#" class="sidebar-menu-item">
+                    <i data-lucide="shopping-cart" class="h-5 w-5"></i>
+                    <span>Orders</span>
+                </a>
+
+                <!-- Tables -->
+                <a href="tables.html" class="sidebar-menu-item">
+                    <i data-lucide="table-2" class="h-5 w-5"></i>
+                    <span>Tables</span>
+                </a>
+
+                <!-- Reports - With Submenu -->
+                <div>
+                    <button 
+                        @click="openSubmenus.reports = !openSubmenus.reports"
+                        class="sidebar-menu-item w-full justify-between"
+                        :class="openSubmenus.reports ? 'sidebar-menu-item-parent active' : ''"
+                    >
+                        <div class="flex items-center gap-3">
+                            <i data-lucide="file-text" class="h-5 w-5"></i>
+                            <span>Reports</span>
+                        </div>
+                        <i data-lucide="chevron-down" class="h-4 w-4 transition-transform duration-200" :class="openSubmenus.reports ? 'rotate-180' : ''"></i>
+                    </button>
+                    <div 
+                        class="sidebar-submenu"
+                        :style="openSubmenus.reports ? 'max-height: 200px; opacity: 1' : 'max-height: 0; opacity: 0'"
+                    >
+                        <div class="py-1">
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-success"></span>
+                                <span>Sales Report</span>
+                            </a>
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-primary"></span>
+                                <span>User Analytics</span>
+                            </a>
+                            <a href="#" class="sidebar-submenu-item">
+                                <span class="h-2 w-2 rounded-full bg-warning"></span>
+                                <span>Revenue Report</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Support Section -->
+            <div class="mt-8">
+                <p class="sidebar-section-title mb-4">Support</p>
+                <div class="space-y-1">
+                    <a href="settings.html" class="sidebar-menu-item">
+                        <i data-lucide="settings" class="h-5 w-5"></i>
+                        <span>Settings</span>
+                    </a>
+                    <a href="#" class="sidebar-menu-item">
+                        <i data-lucide="help-circle" class="h-5 w-5"></i>
+                        <span>Help Center</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- User Section -->
+        <div class="sidebar-footer">
+            <div class="flex items-center gap-3 rounded-xl p-3 transition-colors duration-150 hover:bg-secondary cursor-pointer">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin" alt="User" class="h-10 w-10 rounded-full bg-secondary">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-sidebar-foreground truncate">John Doe</p>
+                    <p class="text-xs text-muted-foreground truncate">Admin</p>
+                </div>
+                <i data-lucide="log-out" class="h-4 w-4 text-muted-foreground"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="lg:pl-64">
+        <!-- Header -->
+        <header class="header px-4 lg:px-8" x-data="{ notificationOpen: false, userMenuOpen: false }">
+            <!-- Left Side -->
+            <div class="flex items-center gap-4">
+                <button @click="sidebarOpen = true" class="btn btn-ghost btn-icon lg:hidden">
+                    <i data-lucide="menu" class="h-5 w-5"></i>
+                </button>
+                
+                <!-- Search -->
+                <div class="relative hidden sm:block">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i>
+                    <input type="search" placeholder="Search anything..." class="form-input w-64 rounded-full bg-secondary border-0 pl-10 pr-4">
+                </div>
+            </div>
+
+            <!-- Right Side -->
+            <div class="flex items-center gap-2">
+                <!-- Notifications -->
+                <div class="dropdown" x-data="{ open: false }">
+                    <button @click="open = !open" class="btn btn-ghost btn-icon relative">
+                        <i data-lucide="bell" class="h-5 w-5"></i>
+                        <span class="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">2</span>
+                    </button>
+                    <div x-show="open" @click.away="open = false" class="dropdown-content w-80 mt-2">
+                        <div class="dropdown-label font-semibold">Notifications</div>
+                        <div class="dropdown-separator"></div>
+                        <a href="#" class="dropdown-item flex-col items-start gap-1 py-3">
+                            <div class="flex w-full items-center justify-between">
+                                <span class="font-medium text-sm">New order received</span>
+                                <span class="h-2 w-2 rounded-full bg-primary"></span>
+                            </div>
+                            <span class="text-xs text-muted-foreground">5 min ago</span>
+                        </a>
+                        <a href="#" class="dropdown-item flex-col items-start gap-1 py-3">
+                            <div class="flex w-full items-center justify-between">
+                                <span class="font-medium text-sm">Server usage at 80%</span>
+                                <span class="h-2 w-2 rounded-full bg-primary"></span>
+                            </div>
+                            <span class="text-xs text-muted-foreground">1 hour ago</span>
+                        </a>
+                        <div class="dropdown-separator"></div>
+                        <a href="#" class="dropdown-item justify-center text-primary">View all notifications</a>
+                    </div>
+                </div>
+
+                <!-- User Menu -->
+                <div class="dropdown" x-data="{ open: false }">
+                    <button @click="open = !open" class="btn btn-ghost flex items-center gap-3 px-2">
+                        <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin" alt="User" class="h-8 w-8 rounded-full">
+                        <div class="hidden md:block text-left">
+                            <p class="text-sm font-medium">John Doe</p>
+                        </div>
+                        <i data-lucide="chevron-down" class="hidden md:block h-4 w-4 text-muted-foreground"></i>
+                    </button>
+                    <div x-show="open" @click.away="open = false" class="dropdown-content w-56 mt-2">
+                        <div class="dropdown-label">
+                            <div class="flex flex-col">
+                                <span class="font-semibold">John Doe</span>
+                                <span class="text-xs text-muted-foreground font-normal">john@example.com</span>
+                            </div>
+                        </div>
+                        <div class="dropdown-separator"></div>
+                        <a href="#" class="dropdown-item">
+                            <i data-lucide="user" class="h-4 w-4"></i>
+                            <span>Profile</span>
+                        </a>
+                        <a href="settings.html" class="dropdown-item">
+                            <i data-lucide="settings" class="h-4 w-4"></i>
+                            <span>Settings</span>
+                        </a>
+                        <div class="dropdown-separator"></div>
+                        <a href="auth.html" class="dropdown-item text-destructive">
+                            <i data-lucide="log-out" class="h-4 w-4"></i>
+                            <span>Log out</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="p-4 lg:p-8">
+            <!-- Page Title -->
+            <div class="mb-8">
+                <h1 class="text-2xl font-bold text-foreground">Dashboard Overview</h1>
+                <p class="text-muted-foreground mt-1">Welcome back! Here's what's happening today.</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-6 lg:mb-8">
+                <!-- Total Revenue -->
+                <div class="card border-0 shadow-card group hover:shadow-card-hover transition-shadow duration-200">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-3">
+                                <p class="text-sm font-medium text-muted-foreground">Total Revenue</p>
+                                <p class="text-3xl font-bold tracking-tight text-foreground">$84,254</p>
+                                <div class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-success/10 text-success">
+                                    <i data-lucide="trending-up" class="h-3 w-3"></i>
+                                    <span>+12.5%</span>
+                                    <span class="text-muted-foreground font-normal">vs last month</span>
+                                </div>
+                            </div>
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+                                <i data-lucide="dollar-sign" class="h-6 w-6 text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Users -->
+                <div class="card border-0 shadow-card group hover:shadow-card-hover transition-shadow duration-200">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-3">
+                                <p class="text-sm font-medium text-muted-foreground">Active Users</p>
+                                <p class="text-3xl font-bold tracking-tight text-foreground">24,521</p>
+                                <div class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-success/10 text-success">
+                                    <i data-lucide="trending-up" class="h-3 w-3"></i>
+                                    <span>+8.2%</span>
+                                    <span class="text-muted-foreground font-normal">vs last month</span>
+                                </div>
+                            </div>
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
+                                <i data-lucide="users" class="h-6 w-6 text-success"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- New Orders -->
+                <div class="card border-0 shadow-card group hover:shadow-card-hover transition-shadow duration-200">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-3">
+                                <p class="text-sm font-medium text-muted-foreground">New Orders</p>
+                                <p class="text-3xl font-bold tracking-tight text-foreground">1,842</p>
+                                <div class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-success/10 text-success">
+                                    <i data-lucide="trending-up" class="h-3 w-3"></i>
+                                    <span>+15.3%</span>
+                                    <span class="text-muted-foreground font-normal">vs last month</span>
+                                </div>
+                            </div>
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-info/10">
+                                <i data-lucide="shopping-cart" class="h-6 w-6 text-info"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Bounce Rate -->
+                <div class="card border-0 shadow-card group hover:shadow-card-hover transition-shadow duration-200">
+                    <div class="p-6">
+                        <div class="flex items-start justify-between">
+                            <div class="space-y-3">
+                                <p class="text-sm font-medium text-muted-foreground">Bounce Rate</p>
+                                <p class="text-3xl font-bold tracking-tight text-foreground">32.4%</p>
+                                <div class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium bg-destructive/10 text-destructive">
+                                    <i data-lucide="trending-down" class="h-3 w-3"></i>
+                                    <span>-4.1%</span>
+                                    <span class="text-muted-foreground font-normal">vs last month</span>
+                                </div>
+                            </div>
+                            <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10">
+                                <i data-lucide="trending-down" class="h-6 w-6 text-warning"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Charts Row -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6 mb-6 lg:mb-8">
+                <!-- Revenue Chart -->
+                <div class="lg:col-span-2 card border-0 shadow-card">
+                    <div class="card-header flex flex-row items-center justify-between pb-2">
+                        <div>
+                            <h3 class="card-title">Revenue Overview</h3>
+                            <p class="card-description mt-1">Monthly revenue performance</p>
+                        </div>
+                        <div class="dropdown" x-data="{ open: false }">
+                            <button @click="open = !open" class="btn btn-outline btn-sm gap-2">
+                                This Year
+                                <i data-lucide="chevron-down" class="h-4 w-4"></i>
+                            </button>
+                            <div x-show="open" @click.away="open = false" class="dropdown-content mt-2">
+                                <a href="#" class="dropdown-item">This Year</a>
+                                <a href="#" class="dropdown-item">2023</a>
+                                <a href="#" class="dropdown-item">2022</a>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-content pt-4">
+                        <!-- Chart Placeholder - Use Chart.js or similar in production -->
+                        <div class="h-64 flex items-center justify-center bg-secondary/30 rounded-xl">
+                            <p class="text-muted-foreground">Chart Area - Integrate with Chart.js or ApexCharts</p>
+                        </div>
+                        <!-- Legend -->
+                        <div class="flex items-center justify-center gap-6 mt-6 pt-4 border-t border-border">
+                            <div class="flex items-center gap-2">
+                                <div class="h-3 w-3 rounded-full bg-primary"></div>
+                                <span class="text-sm text-muted-foreground">Revenue</span>
+                            </div>
+                            <div class="flex items-center gap-2">
+                                <div class="h-3 w-3 rounded-full" style="background-color: hsl(280, 67%, 55%);"></div>
+                                <span class="text-sm text-muted-foreground">Target</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Traffic Chart -->
+                <div class="card border-0 shadow-card h-full">
+                    <div class="card-header pb-2">
+                        <h3 class="card-title">Traffic Source</h3>
+                        <p class="card-description">Where visitors come from</p>
+                    </div>
+                    <div class="card-content flex flex-col items-center pt-4">
+                        <!-- Donut Chart Placeholder -->
+                        <div class="relative h-48 w-48 flex items-center justify-center">
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <div class="text-center">
+                                    <span class="text-3xl font-bold text-foreground">100k</span>
+                                    <br>
+                                    <span class="text-xs text-muted-foreground">Total Visits</span>
+                                </div>
+                            </div>
+                            <svg viewBox="0 0 100 100" class="w-full h-full -rotate-90">
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="hsl(var(--secondary))" stroke-width="12"/>
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="#818cf8" stroke-width="12" stroke-dasharray="113 251" stroke-linecap="round"/>
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="#34d399" stroke-width="12" stroke-dasharray="75 251" stroke-dashoffset="-113" stroke-linecap="round"/>
+                                <circle cx="50" cy="50" r="40" fill="none" stroke="#fbbf24" stroke-width="12" stroke-dasharray="63 251" stroke-dashoffset="-188" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <!-- Legend -->
+                        <div class="mt-6 w-full space-y-3">
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-3 w-3 rounded-full" style="background-color: #818cf8;"></div>
+                                    <span class="text-sm font-medium text-foreground">Direct</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-semibold text-foreground">45%</span>
+                                    <span class="text-xs text-muted-foreground">(45k)</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-3 w-3 rounded-full" style="background-color: #34d399;"></div>
+                                    <span class="text-sm font-medium text-foreground">Social</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-semibold text-foreground">30%</span>
+                                    <span class="text-xs text-muted-foreground">(30k)</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center justify-between">
+                                <div class="flex items-center gap-3">
+                                    <div class="h-3 w-3 rounded-full" style="background-color: #fbbf24;"></div>
+                                    <span class="text-sm font-medium text-foreground">Referral</span>
+                                </div>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-sm font-semibold text-foreground">25%</span>
+                                    <span class="text-xs text-muted-foreground">(25k)</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Transactions Table -->
+            <div class="card border-0 shadow-card mb-6 lg:mb-8">
+                <div class="card-header flex flex-row items-center justify-between">
+                    <div>
+                        <h3 class="card-title">Recent Transactions</h3>
+                        <p class="card-description mt-1">Latest payment activity</p>
+                    </div>
+                    <button class="btn btn-outline btn-sm">View All</button>
+                </div>
+                <div class="card-content">
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Customer</th>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th class="text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="flex items-center gap-3">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=emma" alt="Emma Wilson" class="h-10 w-10 rounded-full">
+                                            <div>
+                                                <p class="font-medium text-foreground">Emma Wilson</p>
+                                                <p class="text-sm text-muted-foreground">emma@email.com</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-muted-foreground">Dec 12, 2024</td>
+                                    <td class="font-semibold text-foreground">$2,450.00</td>
+                                    <td><span class="badge badge-success badge-pill">Completed</span></td>
+                                    <td class="text-right">
+                                        <div class="dropdown" x-data="{ open: false }">
+                                            <button @click="open = !open" class="btn btn-ghost btn-icon-sm">
+                                                <i data-lucide="more-horizontal" class="h-4 w-4"></i>
+                                            </button>
+                                            <div x-show="open" @click.away="open = false" class="dropdown-content mt-2">
+                                                <a href="#" class="dropdown-item"><i data-lucide="eye" class="h-4 w-4"></i> View Details</a>
+                                                <a href="#" class="dropdown-item"><i data-lucide="download" class="h-4 w-4"></i> Download</a>
+                                                <a href="#" class="dropdown-item text-destructive"><i data-lucide="trash-2" class="h-4 w-4"></i> Delete</a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="flex items-center gap-3">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=james" alt="James Anderson" class="h-10 w-10 rounded-full">
+                                            <div>
+                                                <p class="font-medium text-foreground">James Anderson</p>
+                                                <p class="text-sm text-muted-foreground">james@email.com</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-muted-foreground">Dec 11, 2024</td>
+                                    <td class="font-semibold text-foreground">$1,890.00</td>
+                                    <td><span class="badge badge-warning badge-pill">Pending</span></td>
+                                    <td class="text-right">
+                                        <div class="dropdown" x-data="{ open: false }">
+                                            <button @click="open = !open" class="btn btn-ghost btn-icon-sm">
+                                                <i data-lucide="more-horizontal" class="h-4 w-4"></i>
+                                            </button>
+                                            <div x-show="open" @click.away="open = false" class="dropdown-content mt-2">
+                                                <a href="#" class="dropdown-item"><i data-lucide="eye" class="h-4 w-4"></i> View Details</a>
+                                                <a href="#" class="dropdown-item"><i data-lucide="download" class="h-4 w-4"></i> Download</a>
+                                                <a href="#" class="dropdown-item text-destructive"><i data-lucide="trash-2" class="h-4 w-4"></i> Delete</a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>
+                                        <div class="flex items-center gap-3">
+                                            <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=sophie" alt="Sophie Taylor" class="h-10 w-10 rounded-full">
+                                            <div>
+                                                <p class="font-medium text-foreground">Sophie Taylor</p>
+                                                <p class="text-sm text-muted-foreground">sophie@email.com</p>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="text-muted-foreground">Dec 11, 2024</td>
+                                    <td class="font-semibold text-foreground">$3,100.00</td>
+                                    <td><span class="badge badge-success badge-pill">Completed</span></td>
+                                    <td class="text-right">
+                                        <div class="dropdown" x-data="{ open: false }">
+                                            <button @click="open = !open" class="btn btn-ghost btn-icon-sm">
+                                                <i data-lucide="more-horizontal" class="h-4 w-4"></i>
+                                            </button>
+                                            <div x-show="open" @click.away="open = false" class="dropdown-content mt-2">
+                                                <a href="#" class="dropdown-item"><i data-lucide="eye" class="h-4 w-4"></i> View Details</a>
+                                                <a href="#" class="dropdown-item"><i data-lucide="download" class="h-4 w-4"></i> Download</a>
+                                                <a href="#" class="dropdown-item text-destructive"><i data-lucide="trash-2" class="h-4 w-4"></i> Delete</a>
+                                            </div>
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Bottom Widgets Row -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+                <!-- Team Members -->
+                <div class="card border-0 shadow-card h-full">
+                    <div class="card-header pb-4">
+                        <h3 class="card-title">Team Members</h3>
+                        <p class="card-description">Your active collaborators</p>
+                    </div>
+                    <div class="card-content space-y-4">
+                        <div class="flex items-center gap-4 p-3 rounded-xl transition-colors hover:bg-secondary cursor-pointer">
+                            <div class="relative">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=sarah" alt="Sarah Johnson" class="h-10 w-10 rounded-full">
+                                <span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-success"></span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium text-foreground truncate">Sarah Johnson</p>
+                                <p class="text-sm text-muted-foreground truncate">Product Designer</p>
+                            </div>
+                            <span class="text-xs font-medium px-2 py-1 rounded-full bg-success/10 text-success">Online</span>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 rounded-xl transition-colors hover:bg-secondary cursor-pointer">
+                            <div class="relative">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=alex" alt="Alex Chen" class="h-10 w-10 rounded-full">
+                                <span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-success"></span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium text-foreground truncate">Alex Chen</p>
+                                <p class="text-sm text-muted-foreground truncate">Frontend Developer</p>
+                            </div>
+                            <span class="text-xs font-medium px-2 py-1 rounded-full bg-success/10 text-success">Online</span>
+                        </div>
+                        <div class="flex items-center gap-4 p-3 rounded-xl transition-colors hover:bg-secondary cursor-pointer">
+                            <div class="relative">
+                                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=maria" alt="Maria Garcia" class="h-10 w-10 rounded-full">
+                                <span class="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-card bg-muted-foreground"></span>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium text-foreground truncate">Maria Garcia</p>
+                                <p class="text-sm text-muted-foreground truncate">Backend Developer</p>
+                            </div>
+                            <span class="text-xs font-medium px-2 py-1 rounded-full bg-muted text-muted-foreground">Offline</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- To-Do List -->
+                <div class="card border-0 shadow-card h-full" x-data="{ 
+                    todos: [
+                        { id: 1, text: 'Review Q4 financial reports', completed: true },
+                        { id: 2, text: 'Schedule team standup meeting', completed: false },
+                        { id: 3, text: 'Update project documentation', completed: false },
+                        { id: 4, text: 'Prepare client presentation', completed: true },
+                        { id: 5, text: 'Code review for new features', completed: false }
+                    ]
+                }">
+                    <div class="card-header pb-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="card-title">To-Do List</h3>
+                                <p class="card-description mt-1">
+                                    <span x-text="todos.filter(t => t.completed).length"></span> of <span x-text="todos.length"></span> completed
+                                </p>
+                            </div>
+                            <button class="btn btn-outline btn-icon-sm">
+                                <i data-lucide="plus" class="h-4 w-4"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="card-content space-y-2">
+                        <template x-for="todo in todos" :key="todo.id">
+                            <div class="group flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-secondary">
+                                <input 
+                                    type="checkbox" 
+                                    :checked="todo.completed"
+                                    @change="todo.completed = !todo.completed"
+                                    class="form-checkbox"
+                                >
+                                <span 
+                                    class="flex-1 text-sm transition-all"
+                                    :class="todo.completed ? 'line-through text-muted-foreground' : 'text-foreground'"
+                                    x-text="todo.text"
+                                ></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- Storage Usage -->
+                <div class="card border-0 shadow-card h-full">
+                    <div class="card-header pb-4">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="card-title">Storage Usage</h3>
+                                <p class="card-description mt-1">Cloud storage overview</p>
+                            </div>
+                            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary/10">
+                                <i data-lucide="hard-drive" class="h-5 w-5 text-primary"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-content space-y-6">
+                        <!-- Progress -->
+                        <div class="space-y-3">
+                            <div class="flex items-end justify-between">
+                                <div>
+                                    <span class="text-3xl font-bold text-foreground">68</span>
+                                    <span class="text-lg text-muted-foreground"> / 100 GB</span>
+                                </div>
+                                <span class="text-sm font-medium text-primary">68% used</span>
+                            </div>
+                            <div class="progress h-3">
+                                <div class="progress-bar" style="width: 68%;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Breakdown -->
+                        <div class="space-y-3">
+                            <p class="text-sm font-medium text-muted-foreground">Storage Breakdown</p>
+                            <div class="flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-secondary">
+                                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/10">
+                                    <i data-lucide="image" class="h-4 w-4 text-primary"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-foreground">Images</p>
+                                </div>
+                                <span class="text-sm font-semibold text-foreground">24.5 GB</span>
+                            </div>
+                            <div class="flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-secondary">
+                                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-success/10">
+                                    <i data-lucide="file-text" class="h-4 w-4 text-success"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-foreground">Documents</p>
+                                </div>
+                                <span class="text-sm font-semibold text-foreground">18.2 GB</span>
+                            </div>
+                            <div class="flex items-center gap-3 p-3 rounded-xl transition-colors hover:bg-secondary">
+                                <div class="flex h-9 w-9 items-center justify-center rounded-lg bg-warning/10">
+                                    <i data-lucide="film" class="h-4 w-4 text-warning"></i>
+                                </div>
+                                <div class="flex-1">
+                                    <p class="text-sm font-medium text-foreground">Videos</p>
+                                </div>
+                                <span class="text-sm font-semibold text-foreground">15.8 GB</span>
+                            </div>
+                        </div>
+
+                        <button class="btn btn-primary w-full">Upgrade Storage</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>

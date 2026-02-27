@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Tables - Neo-SaaS Admin</title>
+    
+    <!-- Google Fonts - Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    
+    <!-- Alpine.js -->
+    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="assets/css/styles.css">
+</head>
+<body x-data="{ 
+    sidebarOpen: false, 
+    openSubmenus: {},
+    selectAll: false,
+    selectedRows: [],
+    searchQuery: '',
+    filterStatus: 'all',
+    perPage: '10',
+    currentPage: 1
+}">
+    
+    <!-- Mobile Sidebar Overlay -->
+    <div 
+        x-show="sidebarOpen" 
+        x-transition:enter="transition-opacity duration-300"
+        x-transition:enter-start="opacity-0"
+        x-transition:enter-end="opacity-100"
+        x-transition:leave="transition-opacity duration-300"
+        x-transition:leave-start="opacity-100"
+        x-transition:leave-end="opacity-0"
+        @click="sidebarOpen = false"
+        class="sidebar-overlay lg:hidden"
+    ></div>
+
+    <!-- Sidebar (Same as Dashboard) -->
+    <aside 
+        class="sidebar"
+        :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
+    >
+        <!-- Logo -->
+        <div class="sidebar-header">
+            <a href="dashboard.html" class="flex items-center gap-3">
+                <div class="flex h-9 w-9 items-center justify-center rounded-xl bg-primary">
+                    <i data-lucide="layers" class="h-5 w-5 text-primary-foreground"></i>
+                </div>
+                <span class="text-lg font-semibold text-sidebar-foreground">Dashboard</span>
+            </a>
+            <button @click="sidebarOpen = false" class="btn btn-ghost btn-icon-sm lg:hidden">
+                <i data-lucide="chevron-left" class="h-4 w-4"></i>
+            </button>
+        </div>
+
+        <!-- Navigation -->
+        <nav class="sidebar-nav">
+            <div class="space-y-1">
+                <a href="dashboard.html" class="sidebar-menu-item">
+                    <i data-lucide="layout-dashboard" class="h-5 w-5"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="sidebar-menu-item">
+                    <i data-lucide="bar-chart-3" class="h-5 w-5"></i>
+                    <span>Analytics</span>
+                </a>
+                <a href="#" class="sidebar-menu-item">
+                    <i data-lucide="users" class="h-5 w-5"></i>
+                    <span>Customers</span>
+                </a>
+                <a href="#" class="sidebar-menu-item">
+                    <i data-lucide="shopping-cart" class="h-5 w-5"></i>
+                    <span>Orders</span>
+                </a>
+                <a href="tables.html" class="sidebar-menu-item active">
+                    <i data-lucide="table-2" class="h-5 w-5"></i>
+                    <span>Tables</span>
+                    <span class="ml-auto h-2 w-2 rounded-full bg-primary"></span>
+                </a>
+                <a href="#" class="sidebar-menu-item">
+                    <i data-lucide="file-text" class="h-5 w-5"></i>
+                    <span>Reports</span>
+                </a>
+            </div>
+
+            <div class="mt-8">
+                <p class="sidebar-section-title mb-4">Support</p>
+                <div class="space-y-1">
+                    <a href="settings.html" class="sidebar-menu-item">
+                        <i data-lucide="settings" class="h-5 w-5"></i>
+                        <span>Settings</span>
+                    </a>
+                    <a href="#" class="sidebar-menu-item">
+                        <i data-lucide="help-circle" class="h-5 w-5"></i>
+                        <span>Help Center</span>
+                    </a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- User Section -->
+        <div class="sidebar-footer">
+            <div class="flex items-center gap-3 rounded-xl p-3 transition-colors duration-150 hover:bg-secondary cursor-pointer">
+                <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin" alt="User" class="h-10 w-10 rounded-full bg-secondary">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium text-sidebar-foreground truncate">John Doe</p>
+                    <p class="text-xs text-muted-foreground truncate">Admin</p>
+                </div>
+                <i data-lucide="log-out" class="h-4 w-4 text-muted-foreground"></i>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="lg:pl-64">
+        <!-- Header -->
+        <header class="header px-4 lg:px-8">
+            <div class="flex items-center gap-4">
+                <button @click="sidebarOpen = true" class="btn btn-ghost btn-icon lg:hidden">
+                    <i data-lucide="menu" class="h-5 w-5"></i>
+                </button>
+                <div class="relative hidden sm:block">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"></i>
+                    <input type="search" placeholder="Search anything..." class="form-input w-64 rounded-full bg-secondary border-0 pl-10 pr-4">
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button class="btn btn-ghost btn-icon relative">
+                    <i data-lucide="bell" class="h-5 w-5"></i>
+                    <span class="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-[10px] font-medium text-white">2</span>
+                </button>
+                <div class="flex items-center gap-3 px-2 cursor-pointer">
+                    <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=admin" alt="User" class="h-8 w-8 rounded-full">
+                    <div class="hidden md:block text-left">
+                        <p class="text-sm font-medium">John Doe</p>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Page Content -->
+        <main class="p-4 lg:p-8">
+            <!-- Page Header with Breadcrumbs and Actions -->
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+                <!-- Breadcrumbs -->
+                <div>
+                    <nav class="flex items-center text-sm text-muted-foreground mb-2">
+                        <span>Dashboard</span>
+                        <span class="mx-2">/</span>
+                        <span>Data Master</span>
+                        <span class="mx-2">/</span>
+                        <span class="text-foreground font-medium">SPPG</span>
+                    </nav>
+                    <h1 class="text-2xl font-bold text-foreground">Data SPPG</h1>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-3">
+                    <button class="btn btn-success gap-2 px-4 py-2">
+                        <i data-lucide="file-spreadsheet" class="h-4 w-4"></i>
+                        Import SPPG (Excel)
+                    </button>
+                    <button class="btn btn-primary gap-2 px-4 py-2">
+                        <i data-lucide="plus" class="h-4 w-4"></i>
+                        Add
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table Controls Card -->
+            <div class="card border-0 shadow-card mb-6">
+                <div class="p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <!-- Filter Dropdown -->
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="filter" class="h-4 w-4 text-muted-foreground"></i>
+                            <span class="text-sm font-medium text-muted-foreground">Filter:</span>
+                        </div>
+                        <select x-model="filterStatus" class="form-input w-44 rounded-lg">
+                            <option value="all">Semua Status</option>
+                            <option value="success">Operasional</option>
+                            <option value="default">Aktif</option>
+                            <option value="warning">Dalam Proses</option>
+                            <option value="destructive">Tidak Aktif</option>
+                        </select>
+                    </div>
+
+                    <!-- Search Bar -->
+                    <div class="relative w-full sm:w-80">
+                        <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground"></i>
+                        <input 
+                            type="search" 
+                            x-model="searchQuery"
+                            placeholder="Cari..." 
+                            class="form-input pl-10 rounded-lg w-full"
+                        >
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table Card -->
+            <div class="card border-0 shadow-card overflow-hidden">
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="w-12 px-4">
+                                    <input 
+                                        type="checkbox" 
+                                        x-model="selectAll"
+                                        class="form-checkbox"
+                                    >
+                                </th>
+                                <th class="px-4 cursor-pointer hover:text-foreground">
+                                    <span class="flex items-center">
+                                        ID SPPG
+                                        <span class="inline-flex flex-col ml-1">
+                                            <i data-lucide="chevron-up" class="h-3 w-3 -mb-1 text-muted-foreground/40"></i>
+                                            <i data-lucide="chevron-down" class="h-3 w-3 text-muted-foreground/40"></i>
+                                        </span>
+                                    </span>
+                                </th>
+                                <th class="px-4 cursor-pointer hover:text-foreground">
+                                    <span class="flex items-center">
+                                        Nama
+                                        <span class="inline-flex flex-col ml-1">
+                                            <i data-lucide="chevron-up" class="h-3 w-3 -mb-1 text-muted-foreground/40"></i>
+                                            <i data-lucide="chevron-down" class="h-3 w-3 text-muted-foreground/40"></i>
+                                        </span>
+                                    </span>
+                                </th>
+                                <th class="px-4">Lembaga Pengusul</th>
+                                <th class="px-4">Status</th>
+                                <th class="px-4 text-center">Aktif</th>
+                                <th class="px-4 text-center">Akreditasi</th>
+                                <th class="px-4">Kepala SPPG</th>
+                                <th class="px-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <!-- Row 1 -->
+                            <tr>
+                                <td class="px-4"><input type="checkbox" class="form-checkbox"></td>
+                                <td class="px-4"><span class="text-sm font-medium text-foreground">SPPG-001</span></td>
+                                <td class="px-4"><span class="text-sm text-foreground">Sekolah Penggerak Maju Bersama</span></td>
+                                <td class="px-4"><span class="text-sm text-muted-foreground">Yayasan Pendidikan Nusantara</span></td>
+                                <td class="px-4"><span class="badge badge-success badge-pill">Operasional</span></td>
+                                <td class="px-4 text-center">
+                                    <span class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-success/10">
+                                        <i data-lucide="check" class="h-4 w-4 text-success"></i>
+                                    </span>
+                                </td>
+                                <td class="px-4 text-center">
+                                    <span class="inline-flex items-center justify-center h-7 w-7 rounded-lg text-xs font-bold bg-success/10 text-success">A</span>
+                                </td>
+                                <td class="px-4"><span class="text-sm text-muted-foreground">Dr. Budi Santoso, M.Pd</span></td>
+                                <td class="px-4">
+                                    <div class="flex items-center justify-end gap-3">
+                                        <button class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                            <i data-lucide="eye" class="h-4 w-4"></i>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <button class="inline-flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 transition-colors">
+                                            <i data-lucide="pencil" class="h-4 w-4"></i>
+                                            <span>Ubah</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Row 2 -->
+                            <tr>
+                                <td class="px-4"><input type="checkbox" class="form-checkbox"></td>
+                                <td class="px-4"><span class="text-sm font-medium text-foreground">SPPG-002</span></td>
+                                <td class="px-4"><span class="text-sm text-foreground">Pusat Pelatihan Guru Profesional</span></td>
+                                <td class="px-4"><span class="text-sm text-muted-foreground">Dinas Pendidikan Jakarta</span></td>
+                                <td class="px-4"><span class="badge badge-success badge-pill">Siap Berjalan</span></td>
+                                <td class="px-4 text-center">
+                                    <span class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-success/10">
+                                        <i data-lucide="check" class="h-4 w-4 text-success"></i>
+                                    </span>
+                                </td>
+                                <td class="px-4 text-center">
+                                    <span class="inline-flex items-center justify-center h-7 w-7 rounded-lg text-xs font-bold bg-success/10 text-success">A</span>
+                                </td>
+                                <td class="px-4"><span class="text-sm text-muted-foreground">Prof. Siti Rahayu, Ph.D</span></td>
+                                <td class="px-4">
+                                    <div class="flex items-center justify-end gap-3">
+                                        <button class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                            <i data-lucide="eye" class="h-4 w-4"></i>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <button class="inline-flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 transition-colors">
+                                            <i data-lucide="pencil" class="h-4 w-4"></i>
+                                            <span>Ubah</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Row 3 -->
+                            <tr>
+                                <td class="px-4"><input type="checkbox" class="form-checkbox"></td>
+                                <td class="px-4"><span class="text-sm font-medium text-foreground">SPPG-003</span></td>
+                                <td class="px-4"><span class="text-sm text-foreground">Lembaga Sertifikasi Pendidik</span></td>
+                                <td class="px-4"><span class="text-sm text-muted-foreground">Universitas Negeri Malang</span></td>
+                                <td class="px-4"><span class="badge badge-secondary badge-pill">Aktif</span></td>
+                                <td class="px-4 text-center">
+                                    <span class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-success/10">
+                                        <i data-lucide="check" class="h-4 w-4 text-success"></i>
+                                    </span>
+                                </td>
+                                <td class="px-4 text-center">
+                                    <span class="inline-flex items-center justify-center h-7 w-7 rounded-lg text-xs font-bold bg-info/10 text-info">B</span>
+                                </td>
+                                <td class="px-4"><span class="text-sm text-muted-foreground">Drs. Ahmad Wijaya, M.Si</span></td>
+                                <td class="px-4">
+                                    <div class="flex items-center justify-end gap-3">
+                                        <button class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                            <i data-lucide="eye" class="h-4 w-4"></i>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <button class="inline-flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 transition-colors">
+                                            <i data-lucide="pencil" class="h-4 w-4"></i>
+                                            <span>Ubah</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Row 4 -->
+                            <tr>
+                                <td class="px-4"><input type="checkbox" class="form-checkbox"></td>
+                                <td class="px-4"><span class="text-sm font-medium text-foreground">SPPG-004</span></td>
+                                <td class="px-4"><span class="text-sm text-foreground">Balai Diklat Guru Daerah</span></td>
+                                <td class="px-4"><span class="text-sm text-muted-foreground">Pemerintah Provinsi Jawa Barat</span></td>
+                                <td class="px-4"><span class="badge badge-success badge-pill">Operasional</span></td>
+                                <td class="px-4 text-center">
+                                    <span class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-success/10">
+                                        <i data-lucide="check" class="h-4 w-4 text-success"></i>
+                                    </span>
+                                </td>
+                                <td class="px-4 text-center">
+                                    <span class="inline-flex items-center justify-center h-7 w-7 rounded-lg text-xs font-bold bg-success/10 text-success">A</span>
+                                </td>
+                                <td class="px-4"><span class="text-sm text-muted-foreground">Ir. Dewi Kusuma, M.T</span></td>
+                                <td class="px-4">
+                                    <div class="flex items-center justify-end gap-3">
+                                        <button class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                            <i data-lucide="eye" class="h-4 w-4"></i>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <button class="inline-flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 transition-colors">
+                                            <i data-lucide="pencil" class="h-4 w-4"></i>
+                                            <span>Ubah</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            <!-- Row 5 -->
+                            <tr>
+                                <td class="px-4"><input type="checkbox" class="form-checkbox"></td>
+                                <td class="px-4"><span class="text-sm font-medium text-foreground">SPPG-005</span></td>
+                                <td class="px-4"><span class="text-sm text-foreground">Unit Pengembangan Kompetensi</span></td>
+                                <td class="px-4"><span class="text-sm text-muted-foreground">Kementerian Pendidikan</span></td>
+                                <td class="px-4"><span class="badge badge-warning badge-pill">Dalam Proses</span></td>
+                                <td class="px-4 text-center">
+                                    <span class="inline-flex items-center justify-center h-6 w-6 rounded-full bg-muted">
+                                        <span class="h-1.5 w-1.5 rounded-full bg-muted-foreground"></span>
+                                    </span>
+                                </td>
+                                <td class="px-4 text-center">
+                                    <span class="inline-flex items-center justify-center h-7 w-7 rounded-lg text-xs font-bold bg-info/10 text-info">B</span>
+                                </td>
+                                <td class="px-4"><span class="text-sm text-muted-foreground">Dr. Hendra Prasetyo, M.Pd</span></td>
+                                <td class="px-4">
+                                    <div class="flex items-center justify-end gap-3">
+                                        <button class="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors">
+                                            <i data-lucide="eye" class="h-4 w-4"></i>
+                                            <span>Lihat</span>
+                                        </button>
+                                        <button class="inline-flex items-center gap-1.5 text-sm text-amber-600 hover:text-amber-700 transition-colors">
+                                            <i data-lucide="pencil" class="h-4 w-4"></i>
+                                            <span>Ubah</span>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Table Footer with Pagination -->
+                <div class="px-4 py-4 border-t border-border bg-secondary/20">
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <!-- Results Info -->
+                        <p class="text-sm text-muted-foreground">
+                            Menampilkan <span class="font-medium text-foreground">1</span> sampai <span class="font-medium text-foreground">10</span> dari <span class="font-medium text-foreground">11</span> hasil
+                        </p>
+
+                        <!-- Pagination Controls -->
+                        <div class="flex items-center gap-4">
+                            <!-- Per Page Selector -->
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm text-muted-foreground">Per halaman:</span>
+                                <select x-model="perPage" class="form-input w-16 h-8 text-sm rounded-lg">
+                                    <option value="5">5</option>
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                    <option value="50">50</option>
+                                </select>
+                            </div>
+
+                            <!-- Pagination Links -->
+                            <div class="flex items-center gap-1">
+                                <button class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+                                    <i data-lucide="chevron-left" class="h-4 w-4"></i>
+                                </button>
+                                <button class="inline-flex items-center justify-center h-8 w-8 rounded-lg border text-sm font-medium border-primary bg-primary text-primary-foreground">
+                                    1
+                                </button>
+                                <button class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border text-sm font-medium text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+                                    2
+                                </button>
+                                <button class="inline-flex items-center justify-center h-8 w-8 rounded-lg border border-border text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors">
+                                    <i data-lucide="chevron-right" class="h-4 w-4"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Initialize Lucide Icons -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            lucide.createIcons();
+        });
+    </script>
+</body>
+</html>
