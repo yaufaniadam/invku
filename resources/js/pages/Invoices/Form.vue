@@ -211,7 +211,7 @@ function submit() {
                                     <button
                                         type="button"
                                         @click="toggleClientDropdown"
-                                        class="flex items-center justify-between h-12 w-full rounded-xl bg-secondary/30 border-0 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
+                                        class="flex items-center justify-between h-12 w-full rounded-xl bg-secondary/30 border-0 px-4 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
                                     >
                                         <span :class="selectedClientName ? 'text-foreground' : 'text-muted-foreground/50'">
                                             {{ selectedClientName || 'Select a client...' }}
@@ -275,7 +275,7 @@ function submit() {
                             <div class="space-y-2">
                                 <Label class="text-sm font-bold ml-1">Invoice Status</Label>
                                 <Select v-model="form.status">
-                                    <SelectTrigger class="h-12 rounded-xl bg-secondary/30 border-0 focus:ring-primary/10">
+                                    <SelectTrigger class="h-12 rounded-xl bg-secondary/30 border-0 shadow-sm focus:ring-primary/10">
                                         <SelectValue placeholder="Select status" />
                                     </SelectTrigger>
                                     <SelectContent class="rounded-2xl shadow-xl">
