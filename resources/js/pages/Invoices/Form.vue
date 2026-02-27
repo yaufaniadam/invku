@@ -37,19 +37,11 @@ const props = defineProps<{
 const isEditing = computed(() => !!props.invoice);
 const draggedIndex = ref<number | null>(null);
 const dragOverIndex = ref<number | null>(null);
-const clientSearch = ref('');
-const comboboxOpen = ref(false);
 
-const filteredClients = computed(() => {
-    if (!clientSearch.value) return props.clients;
-    const q = clientSearch.value.toLowerCase();
-    return props.clients.filter(c => c.name.toLowerCase().includes(q) || c.email?.toLowerCase().includes(q));
-});
-
-const selectedClientName = computed(() => {
-    const client = props.clients.find(c => c.id === form.client_id);
+function getClientDisplayValue(val: string): string {
+    const client = props.clients.find(c => c.id === val);
     return client?.name ?? '';
-});
+}
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -193,11 +185,10 @@ function submit() {
                         <div class="grid gap-8 sm:grid-cols-2">
                             <div class="space-y-2">
                                 <Label class="text-sm font-bold ml-1">Client Name</Label>
-                                <ComboboxRoot v-model="form.client_id" v-model:open="comboboxOpen" class="relative">
+                                <ComboboxRoot v-model="form.client_id" :reset-search-term-on-select="true" class="relative">
                                     <div class="relative">
                                         <ComboboxInput
-                                            :display-value="() => comboboxOpen ? clientSearch : selectedClientName"
-                                            @update:model-value="(val: string) => clientSearch = val"
+                                            :display-value="(val: any) => getClientDisplayValue(val as string)"
                                             placeholder="Search client..."
                                             class="flex h-12 w-full rounded-xl bg-secondary/30 border-0 px-4 pr-10 text-sm font-medium placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
                                         />
@@ -208,16 +199,17 @@ function submit() {
                                     <ComboboxContent
                                         position="popper"
                                         :side-offset="8"
-                                        class="z-50 w-[--reka-combobox-trigger-width] max-h-[280px] overflow-hidden rounded-2xl bg-card border border-border/40 shadow-xl animate-in fade-in-0 zoom-in-95"
+                                        class="z-50 w-[--reka-combobox-trigger-width] max-h-[280px] overflow-y-auto rounded-2xl bg-card border border-border/40 shadow-xl animate-in fade-in-0 zoom-in-95"
                                     >
                                         <ComboboxViewport class="p-1.5">
                                             <ComboboxEmpty class="py-6 text-center text-sm text-muted-foreground">
                                                 No clients found.
                                             </ComboboxEmpty>
                                             <ComboboxItem
-                                                v-for="client in filteredClients"
+                                                v-for="client in clients"
                                                 :key="client.id"
                                                 :value="client.id"
+                                                :text-value="client.name"
                                                 class="relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium cursor-pointer outline-none transition-colors data-[highlighted]:bg-primary/10 data-[state=checked]:text-primary"
                                             >
                                                 <User class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
