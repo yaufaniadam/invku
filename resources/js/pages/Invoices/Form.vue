@@ -35,6 +35,7 @@ const props = defineProps<{
 
 const isEditing = computed(() => !!props.invoice);
 const draggedIndex = ref<number | null>(null);
+const dragOverIndex = ref<number | null>(null);
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
@@ -69,12 +70,30 @@ function onDragStart(index: number, event: DragEvent) {
     }
 }
 
+function onDragEnter(index: number) {
+    if (draggedIndex.value !== null && draggedIndex.value !== index) {
+        dragOverIndex.value = index;
+    }
+}
+
+function onDragLeave(index: number, event: DragEvent) {
+    // Only clear if we're actually leaving the element, not just moving into a child
+    const target = event.target as HTMLElement;
+    const relatedTarget = event.relatedTarget as HTMLElement;
+    if (!target.contains(relatedTarget)) {
+        if (dragOverIndex.value === index) {
+            dragOverIndex.value = null;
+        }
+    }
+}
+
 function onDrop(index: number) {
     if (draggedIndex.value !== null && draggedIndex.value !== index) {
         const item = form.items.splice(draggedIndex.value, 1)[0];
         form.items.splice(index, 0, item);
     }
     draggedIndex.value = null;
+    dragOverIndex.value = null;
 }
 
 function updateItemTotal(index: number) {
@@ -231,25 +250,27 @@ function submit() {
                                 draggable="true"
                                 @dragstart="onDragStart(index, $event)"
                                 @dragover.prevent
-                                @dragenter.prevent
+                                @dragenter.prevent="onDragEnter(index)"
+                                @dragleave="onDragLeave(index, $event)"
                                 @drop="onDrop(index)"
                                 class="relative group p-6 rounded-2xl bg-slate-50/50 dark:bg-muted/10 border border-transparent transition-all hover:border-primary/20 hover:shadow-sm"
-                                :class="{ 'opacity-50 border-dashed border-primary': draggedIndex === index }"
+                                :class="{ 
+                                    'opacity-50 border-dashed border-primary': draggedIndex === index,
+                                    'border-t-2 border-t-primary scale-[1.01] shadow-md bg-primary/5': dragOverIndex === index && draggedIndex !== null && index < draggedIndex,
+                                    'border-b-2 border-b-primary scale-[1.01] shadow-md bg-primary/5': dragOverIndex === index && draggedIndex !== null && index > draggedIndex
+                                }"
                             >
                                 <div class="grid gap-4 sm:gap-6 sm:grid-cols-12 items-start pl-8 sm:pl-0">
-                                    <div class="absolute left-2 top-11 flex sm:hidden cursor-move text-muted-foreground/30 hover:text-muted-foreground transition-colors p-1">
+                                    <div class="absolute left-2 sm:left-2 sm:-ml-2 top-11 sm:top-[42px] flex cursor-move text-muted-foreground/40 hover:text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 transition-all p-1">
                                         <GripVertical class="h-5 w-5" />
                                     </div>
-                                    <div class="hidden sm:flex sm:col-span-1 justify-center pt-8 sm:group-hover:opacity-100 opacity-0 cursor-move transition-opacity text-muted-foreground/40 hover:text-muted-foreground">
-                                        <GripVertical class="h-6 w-6" />
-                                    </div>
-                                    <div class="sm:col-span-5 space-y-2">
+                                    <div class="sm:col-span-6 space-y-2 lg:ml-2">
                                         <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Description</Label>
                                         <Input v-model="item.description" required placeholder="Project consultation, Development..." class="h-11 bg-background border-border/40 rounded-xl shadow-sm focus:ring-primary/10" />
                                     </div>
                                     <div class="sm:col-span-2 space-y-2">
                                         <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1 text-center block">Qty</Label>
-                                        <Input v-model.number="item.quantity" type="number" min="1" step="0.1" required @input="updateItemTotal(index)" class="h-11 bg-background border-border/40 rounded-xl shadow-sm text-center focus:ring-primary/10 font-bold" />
+                                        <Input v-model.number="item.quantity" type="number" min="1" step="1" required @input="updateItemTotal(index)" class="h-11 bg-background border-border/40 rounded-xl shadow-sm text-center focus:ring-primary/10 font-bold" />
                                     </div>
                                     <div class="sm:col-span-3 space-y-2">
                                         <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1 text-right block">Unit Price</Label>
