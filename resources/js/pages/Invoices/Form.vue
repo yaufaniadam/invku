@@ -3,8 +3,7 @@ import { Head, useForm, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
 import { Plus, Trash2, ArrowLeft, Save, User, Calendar, FileText, Percent, Info, GripVertical, Search, Check, ChevronsUpDown } from 'lucide-vue-next';
-import { computed, ref } from 'vue';
-import { ComboboxRoot, ComboboxInput, ComboboxTrigger, ComboboxContent, ComboboxItem, ComboboxEmpty, ComboboxViewport } from 'reka-ui';
+import { computed, ref, nextTick } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -37,10 +36,33 @@ const props = defineProps<{
 const isEditing = computed(() => !!props.invoice);
 const draggedIndex = ref<number | null>(null);
 const dragOverIndex = ref<number | null>(null);
+const clientSearch = ref('');
+const clientDropdownOpen = ref(false);
+const searchInputRef = ref<HTMLInputElement | null>(null);
 
-function getClientDisplayValue(val: string): string {
-    const client = props.clients.find(c => c.id === val);
+const selectedClientName = computed(() => {
+    const client = props.clients.find(c => c.id === form.client_id);
     return client?.name ?? '';
+});
+
+const filteredClients = computed(() => {
+    if (!clientSearch.value) return props.clients;
+    const q = clientSearch.value.toLowerCase();
+    return props.clients.filter(c => c.name.toLowerCase().includes(q));
+});
+
+function toggleClientDropdown() {
+    clientDropdownOpen.value = !clientDropdownOpen.value;
+    if (clientDropdownOpen.value) {
+        clientSearch.value = '';
+        nextTick(() => searchInputRef.value?.focus());
+    }
+}
+
+function selectClient(clientId: string) {
+    form.client_id = clientId;
+    clientDropdownOpen.value = false;
+    clientSearch.value = '';
 }
 
 const breadcrumbs: BreadcrumbItem[] = [
@@ -185,40 +207,68 @@ function submit() {
                         <div class="grid gap-8 sm:grid-cols-2">
                             <div class="space-y-2">
                                 <Label class="text-sm font-bold ml-1">Client Name</Label>
-                                <ComboboxRoot v-model="form.client_id" :reset-search-term-on-select="true" class="relative">
-                                    <div class="relative">
-                                        <ComboboxInput
-                                            :display-value="(val: any) => getClientDisplayValue(val as string)"
-                                            placeholder="Search client..."
-                                            class="flex h-12 w-full rounded-xl bg-secondary/30 border-0 px-4 pr-10 text-sm font-medium placeholder:text-muted-foreground/50 focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
-                                        />
-                                        <ComboboxTrigger class="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground/50 hover:text-muted-foreground">
-                                            <ChevronsUpDown class="h-4 w-4" />
-                                        </ComboboxTrigger>
-                                    </div>
-                                    <ComboboxContent
-                                        position="popper"
-                                        :side-offset="8"
-                                        class="z-50 w-[--reka-combobox-trigger-width] max-h-[280px] overflow-y-auto rounded-2xl bg-card border border-border/40 shadow-xl animate-in fade-in-0 zoom-in-95"
+                                <div class="relative">
+                                    <button
+                                        type="button"
+                                        @click="toggleClientDropdown"
+                                        class="flex items-center justify-between h-12 w-full rounded-xl bg-secondary/30 border-0 px-4 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
                                     >
-                                        <ComboboxViewport class="p-1.5">
-                                            <ComboboxEmpty class="py-6 text-center text-sm text-muted-foreground">
+                                        <span :class="selectedClientName ? 'text-foreground' : 'text-muted-foreground/50'">
+                                            {{ selectedClientName || 'Select a client...' }}
+                                        </span>
+                                        <ChevronsUpDown class="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                                    </button>
+
+                                    <!-- Dropdown panel -->
+                                    <div
+                                        v-if="clientDropdownOpen"
+                                        class="absolute z-50 mt-2 w-full max-h-[300px] rounded-2xl bg-card border border-border/40 shadow-xl overflow-hidden"
+                                    >
+                                        <!-- Search input -->
+                                        <div class="p-2.5 border-b border-border/30">
+                                            <div class="relative">
+                                                <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+                                                <input
+                                                    ref="searchInputRef"
+                                                    v-model="clientSearch"
+                                                    type="text"
+                                                    placeholder="Search client..."
+                                                    class="w-full h-9 pl-9 pr-3 rounded-lg bg-secondary/30 border-0 text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                                                    @keydown.escape="clientDropdownOpen = false"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <!-- Client list -->
+                                        <div class="max-h-[220px] overflow-y-auto p-1.5">
+                                            <div
+                                                v-if="filteredClients.length === 0"
+                                                class="py-6 text-center text-sm text-muted-foreground"
+                                            >
                                                 No clients found.
-                                            </ComboboxEmpty>
-                                            <ComboboxItem
-                                                v-for="client in clients"
+                                            </div>
+                                            <button
+                                                v-for="client in filteredClients"
                                                 :key="client.id"
-                                                :value="client.id"
-                                                :text-value="client.name"
-                                                class="relative flex items-center gap-2.5 rounded-xl px-3 py-2.5 text-sm font-medium cursor-pointer outline-none transition-colors data-[highlighted]:bg-primary/10 data-[state=checked]:text-primary"
+                                                type="button"
+                                                @click="selectClient(client.id)"
+                                                class="flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-sm font-medium text-left cursor-pointer outline-none transition-colors hover:bg-primary/10"
+                                                :class="{ 'text-primary': form.client_id === client.id }"
                                             >
                                                 <User class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                                 <span class="truncate">{{ client.name }}</span>
                                                 <Check v-if="form.client_id === client.id" class="ml-auto h-4 w-4 text-primary shrink-0" />
-                                            </ComboboxItem>
-                                        </ComboboxViewport>
-                                    </ComboboxContent>
-                                </ComboboxRoot>
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Click outside overlay -->
+                                    <div
+                                        v-if="clientDropdownOpen"
+                                        class="fixed inset-0 z-40"
+                                        @click="clientDropdownOpen = false"
+                                    />
+                                </div>
                                 <p v-if="form.errors.client_id" class="mt-1 text-xs font-bold text-destructive ml-1">Please select a client</p>
                             </div>
 
