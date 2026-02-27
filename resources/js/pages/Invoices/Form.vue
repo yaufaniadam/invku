@@ -196,7 +196,7 @@ function submit() {
                 <!-- Main Form (Left side) -->
                 <div class="lg:col-span-2 space-y-8">
                     <!-- General Details Card -->
-                    <div class="card border-0 bg-card shadow-card rounded-[32px] overflow-hidden p-8 md:p-10">
+                    <div class="card border-0 bg-card shadow-card rounded-[32px] p-8 md:p-10">
                         <div class="flex items-center gap-3 mb-8 border-b border-border/40 pb-6">
                             <div class="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                                 <FileText class="h-5 w-5 text-primary" />
