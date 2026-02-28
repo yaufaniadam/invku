@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { LayoutGrid, Users, FileText, CreditCard, Wallet, BarChart3, Settings } from 'lucide-vue-next';
+import { LayoutGrid, Users, Briefcase, FileText, CreditCard, Wallet, Receipt, BarChart3, Settings, Repeat, Building2 } from 'lucide-vue-next';
 import NavMain from '@/components/NavMain.vue';
 import NavUser from '@/components/NavUser.vue';
 import ThemeToggle from '@/components/ThemeToggle.vue';
@@ -24,9 +24,19 @@ const mainNavItems: NavItem[] = [
         icon: LayoutGrid,
     },
     {
+        title: 'Pesanan',
+        href: '/orders',
+        icon: Briefcase,
+    },
+    {
         title: 'Klien',
         href: '/clients',
         icon: Users,
+    },
+    {
+        title: 'Vendor',
+        href: '/vendors',
+        icon: Building2,
     },
     {
         title: 'Invoice',
@@ -44,6 +54,16 @@ const mainNavItems: NavItem[] = [
         icon: Wallet,
     },
     {
+        title: 'Pengeluaran',
+        href: '/expenses',
+        icon: Receipt,
+    },
+    {
+        title: 'Langganan',
+        href: '/subscriptions',
+        icon: Repeat,
+    },
+    {
         title: 'Laporan',
         href: '/reports',
         icon: BarChart3,
@@ -58,7 +78,7 @@ const mainNavItems: NavItem[] = [
 </script>
 
 <template>
-    <Sidebar collapsible="icon" variant="default" class="border-r-0 shadow-xl shadow-foreground/5">
+    <Sidebar collapsible="icon" variant="sidebar" class="border-r-0 shadow-xl shadow-foreground/5">
         <SidebarHeader class="h-20 flex justify-center px-3">
             <SidebarMenu>
                 <SidebarMenuItem>

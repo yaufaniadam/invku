@@ -1,8 +1,11 @@
+```
 <script setup lang="ts">
 import { Head, useForm, Link, router } from '@inertiajs/vue3';
 import AppLayout from '@/layouts/AppLayout.vue';
 import { type BreadcrumbItem } from '@/types';
-import { Plus, Trash2, ArrowLeft, Save, User, Calendar, FileText, Percent, Info, GripVertical, Search, Check, ChevronsUpDown } from 'lucide-vue-next';
+
+import { ArrowLeft, Save, Plus, Trash2, Calendar, FileText, CheckCircle2, ChevronDown, Check, ChevronsUpDown, Info, Percent, GripVertical, Search, User } from 'lucide-vue-next';
+import { toast } from 'vue-sonner';
 import { computed, ref, nextTick } from 'vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,18 +22,21 @@ import { Switch } from '@/components/ui/switch';
 interface Client { id: string; name: string; email: string; }
 interface InvoiceItem { id?: string; description: string; quantity: number; unit_price: number; total: number; }
 interface Invoice {
-    id: string; client_id: string; invoice_number: string;
+    id: string; client_id: string; order_id: string | null; invoice_number: string;
     issue_date: string; due_date: string; status: string;
     tax_rate: number; notes: string; is_rounded: boolean; items: InvoiceItem[];
 }
 
 const props = defineProps<{
     clients: Client[];
+    orders: Array<{ id: string; label: string }>;
     invoiceNumber: string;
     defaultTaxRate: number;
     defaultNotes: string;
     currency: string;
     invoice?: Invoice;
+    defaultClientId?: string;
+    defaultOrderId?: string;
 }>();
 
 const isEditing = computed(() => !!props.invoice);
@@ -65,6 +71,36 @@ function selectClient(clientId: string) {
     clientSearch.value = '';
 }
 
+// Order Search Dropdown State
+const orderSearch = ref('');
+const orderDropdownOpen = ref(false);
+const searchOrderInputRef = ref<HTMLInputElement | null>(null);
+
+const selectedOrderLabel = computed(() => {
+    const order = props.orders.find(o => o.id === form.order_id);
+    return order?.label ?? '';
+});
+
+const filteredOrders = computed(() => {
+    if (!orderSearch.value) return props.orders;
+    const q = orderSearch.value.toLowerCase();
+    return props.orders.filter(o => o.label.toLowerCase().includes(q));
+});
+
+function toggleOrderDropdown() {
+    orderDropdownOpen.value = !orderDropdownOpen.value;
+    if (orderDropdownOpen.value) {
+        orderSearch.value = '';
+        nextTick(() => searchOrderInputRef.value?.focus());
+    }
+}
+
+function selectOrder(orderId: string) {
+    form.order_id = orderId;
+    orderDropdownOpen.value = false;
+    orderSearch.value = '';
+}
+
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Dashboard', href: '/dashboard' },
     { title: 'Invoices', href: '/invoices' },
@@ -72,7 +108,8 @@ const breadcrumbs: BreadcrumbItem[] = [
 ];
 
 const form = useForm({
-    client_id: props.invoice?.client_id ?? '',
+    client_id: props.invoice?.client_id ?? props.defaultClientId ?? '',
+    order_id: props.invoice?.order_id ?? props.defaultOrderId ?? '',
     issue_date: props.invoice?.issue_date ?? new Date().toISOString().split('T')[0],
     due_date: props.invoice?.due_date ?? '',
     status: props.invoice?.status ?? 'draft',
@@ -147,11 +184,45 @@ function formatCurrency(amount: number): string {
     }).format(amount);
 }
 
-function submit() {
+const invoiceFormRef = ref<HTMLFormElement | null>(null);
+
+function handleInvalid(e: Event) {
+    toast.error('Gagal menyimpan!', { 
+        id: 'validation-error', 
+        description: 'Silakan lengkapi semua bidang yang wajib diisi.' 
+    });
+}
+
+function submit(e?: Event) {
+    if (e && e.type !== 'submit') {
+        if (invoiceFormRef.value && !invoiceFormRef.value.checkValidity()) {
+            invoiceFormRef.value.reportValidity();
+            return;
+        }
+    }
+
+    if (!form.client_id) {
+        toast.error('Perhatian!', { id: 'client-error', description: 'Silakan pilih klien terlebih dahulu.' });
+        form.setError('client_id', 'Silakan pilih klien');
+        return;
+    }
+
+    const options = {
+        onSuccess: () => {
+            toast.success('Berhasil!', { 
+                id: 'server-success', 
+                description: isEditing.value ? 'Invoice berhasil diperbarui.' : 'Invoice berhasil dibuat.' 
+            });
+        },
+        onError: () => {
+            toast.error('Gagal menyimpan!', { id: 'server-error', description: 'Silakan periksa kembali isian Anda.' });
+        }
+    };
+
     if (isEditing.value) {
-        form.put(`/invoices/${props.invoice!.id}`);
+        form.put(`/invoices/${props.invoice!.id}`, options);
     } else {
-        form.transform((data) => ({ ...data, invoice_number: props.invoiceNumber })).post('/invoices');
+        form.transform((data) => ({ ...data, invoice_number: props.invoiceNumber })).post('/invoices', options);
     }
 }
 </script>
@@ -160,53 +231,52 @@ function submit() {
     <Head :title="isEditing ? 'Edit Invoice' : 'Create Invoice'" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-8 p-6 md:p-8 text-foreground">
+        <div class="flex h-full flex-1 flex-col gap-4 sm:gap-8 p-4 sm:p-6 md:p-8 text-foreground">
             <!-- Header section with back button -->
-            <div class="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-                <div class="flex items-center gap-5">
+            <div class="flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 sm:gap-5 min-w-0">
                     <Link href="/invoices">
-                        <Button variant="outline" size="icon" class="h-12 w-12 rounded-xl border-border/40 shadow-sm hover:bg-secondary">
-                            <ArrowLeft class="h-5 w-5" />
+                        <Button variant="outline" size="icon" class="h-10 w-10 sm:h-12 sm:w-12 rounded-xl border-border/40 shadow-sm hover:bg-secondary shrink-0">
+                            <ArrowLeft class="h-4 w-4 sm:h-5 sm:w-5" />
                         </Button>
                     </Link>
-                    <div>
-                        <h1 class="text-3xl font-bold tracking-tight">{{ isEditing ? 'Edit Invoice' : 'Create New Invoice' }}</h1>
+                    <div class="min-w-0">
+                        <h1 class="text-xl sm:text-3xl font-bold tracking-tight truncate">{{ isEditing ? 'Edit Invoice' : 'Buat Invoice' }}</h1>
                         <div class="flex items-center gap-2 mt-1">
                             <Badge variant="secondary" class="rounded-lg px-2 py-0 my-0 text-[10px] font-bold uppercase tracking-wider bg-primary/10 text-primary border-0">
                                 {{ props.invoiceNumber }}
                             </Badge>
-                            <p class="text-muted-foreground text-sm font-medium">Drafting since {{ new Date().toLocaleDateString() }}</p>
+                            <p class="hidden sm:block text-muted-foreground text-sm font-medium">Disusun sejak {{ new Date().toLocaleDateString('id-ID') }}</p>
                         </div>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <Button 
-                        @click="submit" 
-                        class="h-12 px-8 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95"
-                        :disabled="form.processing"
-                    >
-                        <Save v-if="!form.processing" class="mr-2 h-5 w-5" />
-                        <span v-else class="mr-2 h-4 w-4 border-2 border-primary-foreground border-t-transparent animate-spin rounded-full"></span>
-                        {{ form.processing ? 'Saving...' : (isEditing ? 'Update Invoice' : 'Save Invoice') }}
-                    </Button>
-                </div>
+                <Button 
+                    @click="submit" 
+                    class="h-10 sm:h-12 px-4 sm:px-8 rounded-xl font-bold shadow-lg shadow-primary/20 transition-all hover:scale-105 active:scale-95 shrink-0 text-sm sm:text-base"
+                    :disabled="form.processing"
+                >
+                    <Save v-if="!form.processing" class="mr-1 sm:mr-2 h-4 w-4 sm:h-5 sm:w-5" />
+                    <span v-else class="mr-1 sm:mr-2 h-4 w-4 border-2 border-primary-foreground border-t-transparent animate-spin rounded-full"></span>
+                    <span class="hidden sm:inline">{{ form.processing ? 'Menyimpan...' : (isEditing ? 'Perbarui Invoice' : 'Simpan Invoice') }}</span>
+                    <span class="sm:hidden">{{ form.processing ? '...' : 'Simpan' }}</span>
+                </Button>
             </div>
 
-            <form @submit.prevent="submit" class="grid gap-8 lg:grid-cols-3 items-start">
+            <form ref="invoiceFormRef" @submit.prevent="submit" @invalid.capture="handleInvalid" class="grid gap-4 sm:gap-8 lg:grid-cols-3 items-start">
                 <!-- Main Form (Left side) -->
                 <div class="lg:col-span-2 space-y-8">
                     <!-- General Details Card -->
-                    <div class="card border-0 bg-card shadow-card rounded-[32px] p-8 md:p-10">
+                    <div class="card border-0 bg-card shadow-card rounded-[20px] sm:rounded-[32px] p-5 sm:p-8 md:p-10">
                         <div class="flex items-center gap-3 mb-8 border-b border-border/40 pb-6">
                             <div class="h-10 w-10 rounded-xl bg-primary/10 flex items-center justify-center">
                                 <FileText class="h-5 w-5 text-primary" />
                             </div>
-                            <h2 class="text-xl font-bold">General Information</h2>
+                            <h2 class="text-xl font-bold">Informasi Umum</h2>
                         </div>
                         
                         <div class="grid gap-8 sm:grid-cols-2">
                             <div class="space-y-2">
-                                <Label class="text-sm font-bold ml-1">Client Name</Label>
+                                <Label class="text-sm font-bold ml-1">Nama Klien</Label>
                                 <div class="relative">
                                     <button
                                         type="button"
@@ -214,7 +284,7 @@ function submit() {
                                         class="flex items-center justify-between h-12 w-full rounded-xl bg-secondary/30 border-0 px-4 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
                                     >
                                         <span :class="selectedClientName ? 'text-foreground' : 'text-muted-foreground/50'">
-                                            {{ selectedClientName || 'Select a client...' }}
+                                            {{ selectedClientName || 'Pilih klien...' }}
                                         </span>
                                         <ChevronsUpDown class="h-4 w-4 text-muted-foreground/50 shrink-0" />
                                     </button>
@@ -232,7 +302,7 @@ function submit() {
                                                     ref="searchInputRef"
                                                     v-model="clientSearch"
                                                     type="text"
-                                                    placeholder="Search client..."
+                                                    placeholder="Cari klien..."
                                                     class="w-full h-9 pl-9 pr-3 rounded-lg bg-secondary/30 border-0 text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
                                                     @keydown.escape="clientDropdownOpen = false"
                                                 />
@@ -245,7 +315,7 @@ function submit() {
                                                 v-if="filteredClients.length === 0"
                                                 class="py-6 text-center text-sm text-muted-foreground"
                                             >
-                                                No clients found.
+                                                Klien tidak ditemukan.
                                             </div>
                                             <button
                                                 v-for="client in filteredClients"
@@ -269,54 +339,134 @@ function submit() {
                                         @click="clientDropdownOpen = false"
                                     />
                                 </div>
-                                <p v-if="form.errors.client_id" class="mt-1 text-xs font-bold text-destructive ml-1">Please select a client</p>
+                                <p v-if="form.errors.client_id" class="mt-1 text-xs font-bold text-destructive ml-1">Silakan pilih klien</p>
                             </div>
 
                             <div class="space-y-2">
-                                <Label class="text-sm font-bold ml-1">Invoice Status</Label>
-                                <Select v-model="form.status">
-                                    <SelectTrigger class="h-12 rounded-xl bg-secondary/30 border-0 shadow-sm focus:ring-primary/10">
-                                        <SelectValue placeholder="Select status" />
-                                    </SelectTrigger>
-                                    <SelectContent class="rounded-2xl shadow-xl">
-                                        <SelectItem value="draft" class="rounded-lg py-2.5">Draft</SelectItem>
-                                        <SelectItem value="sent" class="rounded-lg py-2.5">Sent</SelectItem>
-                                        <SelectItem value="paid" class="rounded-lg py-2.5">Paid</SelectItem>
-                                        <SelectItem value="overdue" class="rounded-lg py-2.5">Overdue</SelectItem>
-                                        <SelectItem value="cancelled" class="rounded-lg py-2.5">Cancelled</SelectItem>
-                                    </SelectContent>
-                                </Select>
-                            </div>
-
-                            <div class="space-y-2">
-                                <Label class="text-sm font-bold ml-1">Issue Date</Label>
+                                <Label class="text-sm font-bold ml-1">Terkait Pesanan</Label>
                                 <div class="relative">
-                                    <Calendar class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                                    <Input v-model="form.issue_date" type="date" required class="pl-11 h-12 bg-secondary/30 border-0 rounded-xl focus:ring-primary/10 font-medium" />
+                                    <button
+                                        type="button"
+                                        @click="toggleOrderDropdown"
+                                        class="flex items-center justify-between h-12 w-full rounded-xl bg-secondary/30 border-0 px-4 text-sm font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all"
+                                    >
+                                        <span :class="selectedOrderLabel ? 'text-foreground' : 'text-muted-foreground/50'">
+                                            {{ selectedOrderLabel || '-- Standalone (Tidak Terkait Pesanan) --' }}
+                                        </span>
+                                        <ChevronsUpDown class="h-4 w-4 text-muted-foreground/50 shrink-0" />
+                                    </button>
+
+                                    <!-- Dropdown panel -->
+                                    <div
+                                        v-if="orderDropdownOpen"
+                                        class="absolute z-50 mt-2 w-full max-h-[300px] rounded-2xl bg-card border border-border/40 shadow-xl overflow-hidden"
+                                    >
+                                        <!-- Search input -->
+                                        <div class="p-2.5 border-b border-border/30">
+                                            <div class="relative">
+                                                <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/50" />
+                                                <input
+                                                    ref="searchOrderInputRef"
+                                                    v-model="orderSearch"
+                                                    type="text"
+                                                    placeholder="Cari referensi pesanan..."
+                                                    class="w-full h-9 pl-9 pr-3 rounded-lg bg-secondary/30 border-0 text-sm font-medium placeholder:text-muted-foreground/40 focus:outline-none focus:ring-2 focus:ring-primary/10"
+                                                    @keydown.escape="orderDropdownOpen = false"
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <!-- Order list -->
+                                        <div class="max-h-[220px] overflow-y-auto p-1.5">
+                                            <button
+                                                type="button"
+                                                @click="selectOrder('')"
+                                                class="flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-sm font-medium text-left cursor-pointer outline-none transition-colors hover:bg-primary/10"
+                                                :class="{ 'text-primary': form.order_id === '' }"
+                                            >
+                                                <span class="truncate">-- Standalone (Tidak Terkait Pesanan) --</span>
+                                                <Check v-if="form.order_id === ''" class="ml-auto h-4 w-4 text-primary shrink-0" />
+                                            </button>
+
+                                            <div
+                                                v-if="filteredOrders.length === 0"
+                                                class="py-6 text-center text-sm text-muted-foreground"
+                                            >
+                                                Pesanan tidak ditemukan.
+                                            </div>
+                                            <button
+                                                v-for="ord in filteredOrders"
+                                                :key="ord.id"
+                                                type="button"
+                                                @click="selectOrder(ord.id)"
+                                                class="flex items-center gap-2.5 w-full rounded-xl px-3 py-2.5 text-sm font-medium text-left cursor-pointer outline-none transition-colors hover:bg-primary/10"
+                                                :class="{ 'text-primary': form.order_id === ord.id }"
+                                            >
+                                                <FileText class="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                                                <span class="truncate">{{ ord.label }}</span>
+                                                <Check v-if="form.order_id === ord.id" class="ml-auto h-4 w-4 text-primary shrink-0" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <!-- Click outside overlay -->
+                                    <div
+                                        v-if="orderDropdownOpen"
+                                        class="fixed inset-0 z-40"
+                                        @click="orderDropdownOpen = false"
+                                    />
                                 </div>
                             </div>
 
-                            <div class="space-y-2">
-                                <Label class="text-sm font-bold ml-1 text-red-500/80">Due Date</Label>
-                                <div class="relative">
-                                    <Calendar class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-red-400" />
-                                    <Input v-model="form.due_date" type="date" required class="pl-11 h-12 bg-red-50/10 dark:bg-red-950/20 border-0 rounded-xl focus:ring-red-500/10 font-bold" />
+                            <div class="sm:col-span-2 grid gap-8 sm:grid-cols-3">
+                                <div class="space-y-2">
+                                    <Label class="text-sm font-bold ml-1">Status Invoice</Label>
+                                    <Select v-model="form.status">
+                                        <SelectTrigger class="h-12 rounded-xl bg-secondary/30 border-0 shadow-sm focus:ring-primary/10">
+                                            <SelectValue placeholder="Pilih status" />
+                                        </SelectTrigger>
+                                        <SelectContent class="rounded-2xl shadow-xl">
+                                            <SelectItem value="draft" class="rounded-lg py-2.5">Draf</SelectItem>
+                                            <SelectItem value="sent" class="rounded-lg py-2.5">Terkirim</SelectItem>
+                                            <SelectItem value="paid" class="rounded-lg py-2.5">Lunas</SelectItem>
+                                            <SelectItem value="overdue" class="rounded-lg py-2.5">Jatuh Tempo</SelectItem>
+                                            <SelectItem value="cancelled" class="rounded-lg py-2.5">Dibatalkan</SelectItem>
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <Label class="text-sm font-bold ml-1">Tanggal Terbit</Label>
+                                    <div class="relative">
+                                        <Calendar class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                                        <Input v-model="form.issue_date" type="date" required class="pl-11 h-12 bg-secondary/30 border-0 rounded-xl focus:ring-primary/10 font-medium" />
+                                    </div>
+                                </div>
+
+                                <div class="space-y-2">
+                                    <Label class="text-sm font-bold ml-1 text-red-500/80">Jatuh Tempo</Label>
+                                    <div class="relative">
+                                        <Calendar class="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-red-400" />
+                                        <Input v-model="form.due_date" type="date" required class="pl-11 h-12 bg-red-50/10 dark:bg-red-950/20 border-0 rounded-xl focus:ring-red-500/10 font-bold" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Items Table Card -->
-                    <div class="card border-0 bg-card shadow-card rounded-[32px] overflow-hidden p-8 md:p-10">
-                        <div class="flex items-center justify-between mb-8 border-b border-border/40 pb-6">
+                    <div class="card border-0 bg-card shadow-card rounded-[20px] sm:rounded-[32px] overflow-hidden p-5 sm:p-8 md:p-10">
+                        <div class="flex items-center justify-between mb-4 sm:mb-8 border-b border-border/40 pb-4 sm:pb-6">
                             <div class="flex items-center gap-3">
                                 <div class="h-10 w-10 rounded-xl bg-green-500/10 flex items-center justify-center">
                                     <Plus class="h-5 w-5 text-green-600" />
                                 </div>
-                                <h2 class="text-xl font-bold">Line Items</h2>
+                                <h2 class="text-xl font-bold">Daftar Item</h2>
                             </div>
-                            <Button type="button" variant="secondary" @click="addItem" class="rounded-xl h-10 px-4 gap-2 font-bold transition-all hover:bg-secondary/80">
-                                <Plus class="h-4 w-4" /> Add Item
+                            <Button type="button" variant="secondary" @click="addItem" class="rounded-xl h-9 sm:h-10 px-3 sm:px-4 gap-1 sm:gap-2 font-bold transition-all hover:bg-secondary/80 text-sm">
+                                <Plus class="h-4 w-4" />
+                                <span class="hidden sm:inline">Tambah Item</span>
+                                <span class="sm:hidden">Tambah</span>
                             </Button>
                         </div>
 
@@ -339,53 +489,55 @@ function submit() {
                             >
                                 <div class="grid gap-4 sm:gap-6 sm:grid-cols-12 items-start pl-8 sm:pl-0">
                                     <div class="sm:col-span-6 space-y-2 lg:ml-2">
-                                        <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Description</Label>
+                                        <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Deskripsi</Label>
                                         <div class="relative">
                                             <div class="absolute -left-11 sm:-left-8 top-1/2 -translate-y-1/2 flex cursor-move text-muted-foreground/40 hover:text-muted-foreground sm:opacity-0 sm:group-hover:opacity-100 transition-all p-1">
                                                 <GripVertical class="h-5 w-5" />
                                             </div>
-                                            <Input v-model="item.description" required placeholder="Project consultation, Development..." class="h-11 bg-background border-border/40 rounded-xl shadow-sm focus:ring-primary/10" />
+                                            <Input v-model="item.description" required placeholder="Konsultasi proyek, Pengembangan..." class="h-11 bg-background border-border/40 rounded-xl shadow-sm focus:ring-primary/10" />
                                         </div>
                                     </div>
-                                    <div class="sm:col-span-2 space-y-2">
-                                        <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1 text-center block">Qty</Label>
-                                        <Input v-model.number="item.quantity" type="number" min="1" step="1" required @input="updateItemTotal(index)" class="h-11 bg-background border-border/40 rounded-xl shadow-sm text-center focus:ring-primary/10 font-bold" />
-                                    </div>
-                                    <div class="sm:col-span-3 space-y-2">
-                                        <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1 text-right block">Unit Price</Label>
-                                        <div class="relative">
-                                            <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">{{ currency }}</span>
-                                            <Input v-model.number="item.unit_price" type="number" min="0" required @input="updateItemTotal(index)" class="pl-12 h-11 bg-background border-border/40 rounded-xl shadow-sm text-right focus:ring-primary/10 font-bold" />
+                                    <div class="grid grid-cols-10 gap-3 sm:contents">
+                                        <div class="col-span-3 sm:col-span-2 space-y-2">
+                                            <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1 text-center block">Kuantitas</Label>
+                                            <Input v-model.number="item.quantity" type="number" min="1" step="1" required @input="updateItemTotal(index)" class="h-11 bg-background border-border/40 rounded-xl shadow-sm text-center focus:ring-primary/10 font-bold w-full" />
+                                        </div>
+                                        <div class="col-span-7 sm:col-span-3 space-y-2">
+                                            <Label v-if="index === 0" class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground ml-1 text-right block">Harga Satuan</Label>
+                                            <div class="relative">
+                                                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-bold text-muted-foreground">{{ currency }}</span>
+                                                <Input v-model.number="item.unit_price" type="number" min="0" required @input="updateItemTotal(index)" class="pl-12 h-11 bg-background border-border/40 rounded-xl shadow-sm text-right focus:ring-primary/10 font-bold w-full" />
+                                            </div>
                                         </div>
                                     </div>
                                     <div class="sm:col-span-1 pt-2 sm:pt-0">
-                                        <Label v-if="index === 0" class="hidden sm:block text-[10px] font-bold uppercase tracking-wider text-muted-foreground opacity-0">Action</Label>
+                                        <Label v-if="index === 0" class="hidden sm:block text-[10px] font-bold uppercase tracking-wider text-muted-foreground opacity-0">Aksi</Label>
                                         <Button type="button" size="icon" variant="ghost" @click="removeItem(index)" :disabled="form.items.length <= 1" class="h-11 w-11 rounded-xl text-destructive hover:bg-destructive/5 disabled:opacity-20 transition-all">
                                             <Trash2 class="h-5 w-5" />
                                         </Button>
                                     </div>
                                 </div>
                                 <div class="mt-4 flex justify-end">
-                                    <p class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Row Total: <span class="text-sm font-black text-foreground ml-2">{{ formatCurrency(item.quantity * item.unit_price) }}</span></p>
+                                    <p class="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Total Baris: <span class="text-sm font-black text-foreground ml-2">{{ formatCurrency(item.quantity * item.unit_price) }}</span></p>
                                 </div>
                             </div>
                         </div>
                     </div>
 
                     <!-- Notes Card -->
-                    <div class="card border-0 bg-card shadow-card rounded-[32px] overflow-hidden p-8 md:p-10">
+                    <div class="card border-0 bg-card shadow-card rounded-[20px] sm:rounded-[32px] overflow-hidden p-5 sm:p-8 md:p-10">
                         <div class="flex items-center gap-3 mb-6">
                             <Info class="h-5 w-5 text-muted-foreground" />
-                            <h2 class="text-xl font-bold">Additional Notes</h2>
+                            <h2 class="text-xl font-bold">Catatan Tambahan</h2>
                         </div>
-                        <textarea v-model="form.notes" rows="4" class="w-full rounded-[24px] bg-secondary/30 border-0 p-6 text-base font-medium placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-primary/10 transition-all" placeholder="Enter terms, payment instructions or simple thanks..."></textarea>
+                        <textarea v-model="form.notes" rows="4" class="w-full rounded-[24px] bg-secondary/30 border-0 p-6 text-base font-medium placeholder:text-muted-foreground/50 focus:ring-2 focus:ring-primary/10 transition-all" placeholder="Masukkan syarat, instruksi pembayaran atau ucapan terima kasih..."></textarea>
                     </div>
                 </div>
 
                 <!-- Summary Sidebar (Right side) -->
-                <div class="space-y-8 sticky top-8">
-                    <div class="card border-0 bg-primary/5 dark:bg-primary/10 shadow-card rounded-[32px] overflow-hidden p-8 border border-primary/10 backdrop-blur-sm">
-                        <h2 class="text-xl font-black mb-8 tracking-tight text-primary uppercase text-[12px] tracking-[3px]">Total Summary</h2>
+                <div class="space-y-4 sm:space-y-8 sticky top-8">
+                    <div class="card border-0 bg-primary/5 dark:bg-primary/10 shadow-card rounded-[20px] sm:rounded-[32px] overflow-hidden p-5 sm:p-8 border border-primary/10 backdrop-blur-sm">
+                        <h2 class="text-xl font-black mb-4 sm:mb-8 tracking-tight text-primary uppercase text-[12px] tracking-[3px]">Ringkasan Total</h2>
                         
                         <div class="space-y-6">
                             <div class="flex justify-between items-center px-1">
@@ -397,7 +549,7 @@ function submit() {
                                 <div class="flex items-center justify-between">
                                     <div class="flex items-center gap-2">
                                         <Percent class="h-3.5 w-3.5 text-primary" />
-                                        <span class="text-[13px] font-bold text-muted-foreground">Tax Rate</span>
+                                        <span class="text-[13px] font-bold text-muted-foreground">Tarif Pajak</span>
                                     </div>
                                     <div class="flex items-center gap-2">
                                         <Input v-model.number="form.tax_rate" type="number" min="0" max="100" class="w-16 h-8 bg-transparent border-0 border-b border-primary/20 rounded-none p-0 text-right font-black text-base focus-visible:ring-0" />
@@ -405,7 +557,7 @@ function submit() {
                                     </div>
                                 </div>
                                 <div class="flex justify-between items-center pt-2">
-                                    <span class="text-[13px] font-bold text-muted-foreground">Tax Amount</span>
+                                    <span class="text-[13px] font-bold text-muted-foreground">Jumlah Pajak</span>
                                     <span class="text-sm font-bold text-foreground">{{ formatCurrency(taxAmount) }}</span>
                                 </div>
                             </div>
@@ -415,15 +567,15 @@ function submit() {
                                     <span class="text-[13px] font-bold text-foreground">Bulatkan Harga</span>
                                     <span class="text-[10px] text-muted-foreground font-medium italic">Ke ribuan terdekat</span>
                                 </div>
-                                <Switch :checked="form.is_rounded" @update:checked="val => form.is_rounded = val" />
+                                <Switch :checked="form.is_rounded" @update:checked="(val: boolean) => form.is_rounded = val" />
                             </div>
 
                             <div class="border-t-2 border-dashed border-primary/20 my-6"></div>
                             
                             <div class="flex flex-col gap-2 px-1">
-                                <p class="text-[10px] font-black uppercase tracking-[2px] text-primary/50">Grand Total</p>
+                                <p class="text-[10px] font-black uppercase tracking-[2px] text-primary/50">Total Keseluruhan</p>
                                 <div class="flex justify-between items-baseline">
-                                   <span class="text-4xl font-black tracking-tighter text-foreground">{{ formatCurrency(totalAmount) }}</span>
+                                   <span class="text-2xl sm:text-4xl font-black tracking-tighter text-foreground">{{ formatCurrency(totalAmount) }}</span>
                                 </div>
                             </div>
 
@@ -441,16 +593,16 @@ function submit() {
                                 :disabled="form.processing" 
                                 class="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-black text-lg shadow-xl shadow-primary/30 transition-all hover:scale-[1.02] active:scale-[0.98] mt-4"
                             >
-                                {{ form.processing ? 'Processing...' : 'Finalize Invoice' }}
+                                {{ form.processing ? 'Memproses...' : 'Simpan Invoice' }}
                             </Button>
                         </div>
                     </div>
                     
-                    <div class="p-6 rounded-[24px] bg-secondary/30 flex items-start gap-4">
+                    <div class="p-4 sm:p-6 rounded-[16px] sm:rounded-[24px] bg-secondary/30 flex items-start gap-3 sm:gap-4">
                         <div class="h-8 w-8 rounded-lg bg-orange-500/10 flex items-center justify-center shrink-0 mt-1">
                             <Info class="h-4 w-4 text-orange-600" />
                         </div>
-                        <p class="text-xs text-muted-foreground leading-relaxed font-medium">This action will create a permanent ledger entry. Please review all items and tax calculations before finalizing.</p>
+                        <p class="text-xs text-muted-foreground leading-relaxed font-medium">Tindakan ini akan membuat entri buku besar permanen. Harap tinjau semua item dan perhitungan pajak sebelum menyimpannya.</p>
                     </div>
                 </div>
             </form>

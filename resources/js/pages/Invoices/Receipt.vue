@@ -46,7 +46,7 @@ function printReceipt() {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col p-0 text-foreground bg-white dark:bg-slate-900">
             <!-- Header (In-App Only) -->
-            <div class="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b px-6 py-4 flex items-center justify-between print:hidden">
+            <div class="sticky top-0 z-10 bg-white dark:bg-slate-900 border-b px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between print:hidden">
                 <div class="flex items-center gap-4">
                     <Button variant="ghost" size="icon" @click="router.visit(`/invoices/${invoice.id}`)">
                         <ArrowLeft class="h-5 w-5" />
@@ -66,48 +66,48 @@ function printReceipt() {
             </div>
 
             <!-- Receipt Paper -->
-            <div class="flex-1 overflow-y-auto p-12 flex justify-center bg-slate-50 dark:bg-slate-950/20">
-                <div class="w-full max-w-[210mm] bg-white dark:bg-slate-900 shadow-xl rounded-sm p-16 relative border border-slate-100 dark:border-slate-800">
+            <div class="flex-1 overflow-y-auto p-4 sm:p-12 flex justify-center bg-slate-50 dark:bg-slate-950/20">
+                <div class="w-full max-w-[210mm] bg-white dark:bg-slate-900 shadow-xl rounded-sm p-6 sm:p-16 relative border border-slate-100 dark:border-slate-800">
                     
                     <!-- Header -->
-                    <div class="flex justify-between items-start mb-12 border-b-2 border-primary/10 pb-8">
+                    <div class="flex justify-between items-start mb-6 sm:mb-12 border-b-2 border-primary/10 pb-4 sm:pb-8">
                         <div>
-                            <img v-if="profile.logo_url" :src="profile.logo_url" alt="Logo" class="max-h-12 w-auto mb-4" />
-                            <h2 class="text-xl font-bold text-slate-800 dark:text-white uppercase tracking-wider">{{ profile.company_name }}</h2>
-                            <p class="text-[11px] text-slate-500 mt-1 max-w-sm leading-relaxed">{{ profile.company_address }}</p>
+                            <img v-if="profile.logo_url" :src="profile.logo_url" alt="Logo" class="max-h-10 sm:max-h-12 w-auto mb-2 sm:mb-4" />
+                            <h2 class="text-base sm:text-xl font-bold text-slate-800 dark:text-white uppercase tracking-wider">{{ profile.company_name }}</h2>
+                            <p class="text-[10px] sm:text-[11px] text-slate-500 mt-1 max-w-sm leading-relaxed">{{ profile.company_address }}</p>
                         </div>
                         <div class="text-right">
-                            <h1 class="text-3xl font-black text-primary tracking-tighter mb-1 uppercase">KWITANSI</h1>
-                            <p class="text-sm font-bold text-slate-600 dark:text-slate-400">NO: {{ invoice.invoice_number }}/KW</p>
+                            <h1 class="text-xl sm:text-3xl font-black text-primary tracking-tighter mb-1 uppercase">KWITANSI</h1>
+                            <p class="text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400">NO: {{ invoice.invoice_number }}/KW</p>
                         </div>
                     </div>
 
                     <!-- Receipt Content -->
-                    <div class="space-y-8 text-slate-700 dark:text-slate-300">
-                        <div class="grid grid-cols-12 items-baseline border-b border-slate-100 dark:border-slate-800 pb-4">
-                            <div class="col-span-3 text-xs font-bold uppercase tracking-widest text-slate-400">Telah Terima Dari</div>
-                            <div class="col-span-9 text-lg font-bold text-slate-900 dark:text-white">: {{ invoice.client.name }}</div>
+                    <div class="space-y-4 sm:space-y-8 text-slate-700 dark:text-slate-300">
+                        <div class="grid grid-cols-12 items-baseline border-b border-slate-100 dark:border-slate-800 pb-3 sm:pb-4 gap-2">
+                            <div class="col-span-12 sm:col-span-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400">Telah Terima Dari</div>
+                            <div class="col-span-12 sm:col-span-9 text-base sm:text-lg font-bold text-slate-900 dark:text-white">: {{ invoice.client.name }}</div>
                         </div>
 
-                        <div class="grid grid-cols-12 items-baseline border-b border-slate-100 dark:border-slate-800 pb-4">
-                            <div class="col-span-3 text-xs font-bold uppercase tracking-widest text-slate-400">Sejumlah</div>
-                            <div class="col-span-9 text-base italic font-medium text-slate-700 dark:text-slate-300">: {{ invoice.custom_terbilang || invoice.terbilang }}</div>
+                        <div class="grid grid-cols-12 items-baseline border-b border-slate-100 dark:border-slate-800 pb-3 sm:pb-4 gap-2">
+                            <div class="col-span-12 sm:col-span-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400">Sejumlah</div>
+                            <div class="col-span-12 sm:col-span-9 text-sm sm:text-base italic font-medium text-slate-700 dark:text-slate-300">: {{ invoice.custom_terbilang || invoice.terbilang }}</div>
                         </div>
 
-                        <div class="grid grid-cols-12 items-baseline border-b border-slate-100 dark:border-slate-800 pb-4">
-                            <div class="col-span-3 text-xs font-bold uppercase tracking-widest text-slate-400">Guna Membayar</div>
-                            <div class="col-span-9 text-base font-medium">: {{ displayPayment?.guna_membayar || `Membayar Invoice ${invoice.invoice_number}` }}</div>
+                        <div class="grid grid-cols-12 items-baseline border-b border-slate-100 dark:border-slate-800 pb-3 sm:pb-4 gap-2">
+                            <div class="col-span-12 sm:col-span-3 text-[10px] sm:text-xs font-bold uppercase tracking-widest text-slate-400">Guna Membayar</div>
+                            <div class="col-span-12 sm:col-span-9 text-sm sm:text-base font-medium">: {{ displayPayment?.guna_membayar || `Membayar Invoice ${invoice.invoice_number}` }}</div>
                         </div>
                     </div>
 
                     <!-- Bottom Section -->
-                    <div class="mt-16 flex justify-between items-end">
-                        <div class="bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 px-8 py-4 rounded-xl">
+                    <div class="mt-8 sm:mt-16 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-6 sm:gap-0">
+                        <div class="bg-primary/5 dark:bg-primary/10 border-2 border-primary/20 px-4 sm:px-8 py-3 sm:py-4 rounded-xl">
                             <p class="text-[10px] font-black uppercase tracking-[2px] text-primary/60 mb-1">TERBILANG</p>
-                            <p class="text-3xl font-black text-primary tracking-tighter">{{ formatCurrency(displayPayment?.amount || 0) }}</p>
+                            <p class="text-xl sm:text-3xl font-black text-primary tracking-tighter">{{ formatCurrency(displayPayment?.amount || 0) }}</p>
                         </div>
 
-                        <div class="text-center w-64">
+                        <div class="text-center w-48 sm:w-64">
                             <p class="text-xs font-medium text-slate-500 mb-16">{{ formatDate(displayPayment?.payment_date || new Date().toISOString()) }}</p>
                             <div class="border-b border-slate-200 dark:border-slate-700 w-full mb-2"></div>
                             <p class="text-xs font-bold text-slate-800 dark:text-white uppercase tracking-widest">{{ profile.company_name }}</p>

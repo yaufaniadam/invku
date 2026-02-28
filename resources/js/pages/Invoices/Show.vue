@@ -5,6 +5,7 @@ import { type BreadcrumbItem } from '@/types';
 import { ArrowLeft, Pencil, Trash2, Printer, Download, CheckCircle2, AlertCircle, Clock, XCircle, FileText, Mail, Phone, MapPin, Building2, Banknote, Calendar, Image as ImageIcon } from 'lucide-vue-next';
 import { useForm } from '@inertiajs/vue3';
 import { ref } from 'vue';
+import { toast } from 'vue-sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -19,10 +20,10 @@ import {
 interface InvoiceItem { id: string; description: string; quantity: number; unit_price: number; total: number; }
 interface Client { id: string; name: string; email: string; phone: string; address: string; company: string; }
 interface Payment { id: string; amount: number; payment_date: string; payment_method: string; guna_membayar: string; proof_url: string | null; }
-interface Profile { company_name: string; company_address: string; company_phone: string; company_email: string; company_website: string; logo_url: string; bank_name: string | null; bank_account_number: string | null; bank_account_name: string | null; default_invoice_notes: string | null; }
+interface Profile { company_name: string; company_address: string; company_phone: string; company_email: string; company_website: string; logo_url: string; bank_name: string | null; bank_account_number: string | null; bank_account_name: string | null; default_invoice_notes: string | null; color?: string; }
 interface Invoice {
     id: string; invoice_number: string; issue_date: string; due_date: string;
-    status: string; subtotal: number; tax_rate: number; tax_amount: number;
+    status: string; label_status?: string; subtotal: number; tax_rate: number; tax_amount: number;
     total_amount: number; notes: string; client: Client; items: InvoiceItem[];
     payments: Payment[]; judul_dokumen: string; is_receipt: boolean;
     is_rounded: boolean; rounding_amount: number;
@@ -121,7 +122,18 @@ function formatDate(date: string): string {
 }
 
 function updateStatus(newStatus: string) {
-    router.patch(`/invoices/${props.invoice.id}/status`, { status: newStatus });
+    router.patch(`/invoices/${props.invoice.id}/status`, { status: newStatus }, {
+        onSuccess: () => {
+            const statusLabels: Record<string, string> = {
+                'sent': 'Terkirim',
+                'paid': 'Lunas',
+                'overdue': 'Jatuh Tempo',
+                'cancelled': 'Dibatalkan',
+                'draft': 'Draf'
+            };
+            toast.success('Berhasil!', { description: `Status invoice berhasil diubah menjadi ${statusLabels[newStatus] || newStatus}.` });
+        }
+    });
 }
 
 function deleteInvoice() {
@@ -129,22 +141,59 @@ function deleteInvoice() {
         router.delete(`/invoices/${props.invoice.id}`);
     }
 }
+
+function printInvoice() {
+    window.print();
+}
+
+function deletePayment(paymentId: string) {
+    if (confirm('Hapus pembayaran ini? Tindakan ini tidak dapat dibatalkan.')) {
+        router.delete(`/invoices/${props.invoice.id}/payments/${paymentId}`);
+    }
+}
+
+function sendViaWhatsApp() {
+    const phone = props.invoice.client?.phone || '';
+    const message = encodeURIComponent(
+        `Halo ${props.invoice.client?.name},\n\n` +
+        `Berikut adalah link untuk melihat tagihan/invoice dengan nomor ${props.invoice.invoice_number} dari ${props.profile?.company_name || 'kami'}.\n\n` +
+        `Total Tagihan: ${formatCurrency(props.invoice.total_amount)}\n` +
+        `Jatuh Tempo: ${formatDate(props.invoice.due_date)}\n\n` +
+        `Detail lengkap invoice dapat dilihat dan diunduh (PDF) melalui link berikut:\n` +
+        `${window.location.origin}/invoices/${props.invoice.id}/pdf\n\n` +
+        `Terima kasih.`
+    );
+    
+    // Switch status to sent first
+    if (props.invoice.status === 'draft') {
+        updateStatus('sent');
+    }
+    
+    // Open WA
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    const waUrl = isMobile 
+        ? `whatsapp://send?phone=${phone}&text=${message}` 
+        : `https://web.whatsapp.com/send?phone=${phone}&text=${message}`;
+        
+    window.open(waUrl, '_blank');
+}
+
 </script>
 
 <template>
     <Head :title="invoice.invoice_number" />
 
     <AppLayout :breadcrumbs="breadcrumbs">
-        <div class="flex h-full flex-1 flex-col gap-8 p-6 md:p-8 text-foreground">
+        <div class="flex h-full flex-1 flex-col gap-4 sm:gap-8 p-4 sm:p-6 md:p-8 text-foreground">
             <!-- Header section with back button and actions -->
             <!-- Action Bar -->
-            <div class="flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
-                <div class="flex items-center gap-4">
-                    <Button variant="ghost" size="icon" @click="router.visit('/invoices')">
-                        <ArrowLeft class="h-5 w-5" />
+            <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between print-hidden">
+                <div class="flex items-center gap-3 sm:gap-4">
+                    <Button variant="ghost" size="icon" class="h-8 w-8 sm:h-10 sm:w-10" @click="router.visit('/invoices')">
+                        <ArrowLeft class="h-4 w-4 sm:h-5 sm:w-5" />
                     </Button>
-                    <div class="flex items-center gap-3">
-                        <h1 class="text-2xl font-bold">{{ invoice.invoice_number }}</h1>
+                    <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                        <h1 class="text-lg sm:text-2xl font-bold truncate">{{ invoice.invoice_number }}</h1>
                         <Badge class="rounded-full px-3 py-1 text-xs font-medium border" :class="{
                             'bg-green-500/10 text-green-600 border-green-200': invoice.status === 'paid',
                             'bg-blue-500/10 text-blue-600 border-blue-200': invoice.status === 'sent',
@@ -156,7 +205,7 @@ function deleteInvoice() {
                     </div>
                 </div>
 
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="flex flex-wrap items-center gap-1.5 sm:gap-2">
                     <DropdownMenu>
                         <DropdownMenuTrigger as-child>
                             <Button variant="outline" size="sm" class="h-9 px-3 rounded-lg border bg-background text-sm">
@@ -169,26 +218,24 @@ function deleteInvoice() {
                                 <CheckCircle2 class="mr-3 h-4 w-4" /> Lunas
                             </DropdownMenuItem>
                             <DropdownMenuItem class="rounded-lg py-2 focus:bg-blue-500/10 focus:text-blue-600 cursor-pointer" @click="updateStatus('sent')">
-                                <FileText class="mr-3 h-4 w-4" /> Sent
+                                <FileText class="mr-3 h-4 w-4" /> Terkirim
                             </DropdownMenuItem>
                             <DropdownMenuItem class="rounded-lg py-2 focus:bg-red-500/10 focus:text-red-600 cursor-pointer" @click="updateStatus('overdue')">
-                                <AlertCircle class="mr-3 h-4 w-4" /> Overdue
+                                <AlertCircle class="mr-3 h-4 w-4" /> Jatuh Tempo
                             </DropdownMenuItem>
                              <DropdownMenuItem class="rounded-lg py-2 focus:bg-slate-500/10 focus:text-slate-600 cursor-pointer" @click="updateStatus('cancelled')">
-                                <XCircle class="mr-3 h-4 w-4" /> Cancelled
+                                <XCircle class="mr-3 h-4 w-4" /> Dibatalkan
                             </DropdownMenuItem>
                         </DropdownMenuContent>
                     </DropdownMenu>
 
-                    <Link :href="`/invoices/${invoice.id}/preview`">
-                        <Button variant="outline" size="sm" class="h-9 px-3 rounded-lg border bg-background text-sm">
-                            <Printer class="h-4 w-4 mr-2" /> Preview
-                        </Button>
-                    </Link>
+                    <Button variant="outline" size="sm" class="h-9 px-3 rounded-lg border bg-background text-sm" @click="printInvoice">
+                        <Printer class="h-4 w-4 mr-2" /> Cetak
+                    </Button>
                     
                     <a :href="`/invoices/${invoice.id}/pdf`">
                         <Button variant="default" size="sm" class="h-9 px-3 rounded-lg text-sm bg-primary text-primary-foreground shadow-sm">
-                            <Download class="h-4 w-4 mr-2" /> PDF
+                            <Download class="h-4 w-4 mr-2" /> Unduh PDF
                         </Button>
                     </a>
 
@@ -205,140 +252,142 @@ function deleteInvoice() {
             </div>
 
             <!-- Main Content Grid -->
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
                 <!-- Main Invoice Card (Left) -->
-                <div class="lg:col-span-2">
-                    <Card class="border-0 shadow-card rounded-2xl overflow-hidden" ref="invoiceCardRef">
-                <CardContent class="p-6 lg:p-10">
-                    <div class="flex justify-between items-start mb-8">
-                        <div class="flex flex-col gap-4">
-                            <div class="h-12 w-12 rounded-full flex items-center justify-center relative overflow-hidden" :style="{ backgroundColor: profile?.color || '#eab308' }">
-                                <img v-if="profile?.logo_url" :src="profile.logo_url" class="absolute inset-0 w-full h-full object-contain" />
-                                <span v-else class="font-serif italic text-2xl font-bold" :class="profile?.color ? 'text-white' : 'text-yellow-900'">{{ profile?.company_name?.charAt(0) || 'S' }}</span>
-                            </div>
-                            <h2 class="text-2xl font-bold mt-2 text-foreground">{{ profile?.company_name || 'Perusahaan' }}</h2>
-                        </div>
-                        <div class="text-right flex flex-col items-end gap-2 text-foreground">
-                            <h1 class="text-3xl font-bold tracking-wide uppercase text-primary" :style="{ color: profile?.color ? `${profile.color}` : '' }">Invoice</h1>
-                            <span class="text-lg font-bold">{{ invoice.invoice_number }}</span>
-                        </div>
-                    </div>
-
-                    <div class="h-px w-full bg-border/40 my-8"></div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
-                        <div>
-                            <h3 class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mr-4 mb-4">Kepada</h3>
-                            <h4 class="text-lg font-bold mb-2 text-foreground">{{ invoice.client?.name }}</h4>
-                            <div class="space-y-1.5 text-sm text-muted-foreground">
-                                <p v-if="invoice.client?.company" class="flex items-center gap-2">
-                                    <Building2 class="h-3.5 w-3.5" /> {{ invoice.client.company }}
-                                </p>
-                                <p v-if="invoice.client?.email" class="flex items-center gap-2">
-                                    <Mail class="h-3.5 w-3.5" /> {{ invoice.client.email }}
-                                </p>
-                                <p v-if="invoice.client?.phone" class="flex items-center gap-2">
-                                    <Phone class="h-3.5 w-3.5" /> {{ invoice.client.phone }}
-                                </p>
-                                <p v-if="invoice.client?.address" class="flex items-start gap-2">
-                                    <MapPin class="h-3.5 w-3.5 mt-0.5" /> 
-                                    <span>{{ invoice.client.address }}</span>
-                                </p>
-                            </div>
-                        </div>
-
-                        <div class="space-y-3 md:text-right">
-                            <div class="flex justify-start md:justify-end items-center gap-4 text-sm">
-                                <span class="font-medium text-muted-foreground">Tanggal Terbit:</span>
-                                <span class="font-bold text-foreground w-32 md:text-right">{{ formatDate(invoice.issue_date) }}</span>
-                            </div>
-                            <div class="flex justify-start md:justify-end items-center gap-4 text-sm">
-                                <span class="font-medium text-destructive">Jatuh Tempo:</span>
-                                <span class="font-bold text-destructive w-32 md:text-right">{{ formatDate(invoice.due_date) }}</span>
-                            </div>
-                            <div class="flex justify-start md:justify-end items-center gap-4 text-sm">
-                                <span class="font-medium text-muted-foreground">Status:</span>
-                                <div class="w-32 flex justify-start md:justify-end">
-                                    <Badge class="rounded-full px-3 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 border-none">
-                                        {{ invoice.label_status || invoice.status }}
-                                    </Badge>
+                <div class="lg:col-span-2 w-full overflow-x-auto">
+                    <div class="min-w-[800px] pb-4">
+                        <Card class="border-0 shadow-card rounded-2xl overflow-hidden invoice-font" ref="invoiceCardRef">
+                            <CardContent class="p-10">
+                                <div class="flex justify-between items-start mb-8">
+                                    <div class="flex flex-col gap-4">
+                                        <div class="h-12 w-12 rounded-full flex items-center justify-center relative overflow-hidden" :style="{ backgroundColor: profile?.color || '#eab308' }">
+                                            <img v-if="profile?.logo_url" :src="profile.logo_url" class="absolute inset-0 w-full h-full object-contain" />
+                                            <span v-else class="font-serif italic text-2xl font-bold" :class="profile?.color ? 'text-white' : 'text-yellow-900'">{{ profile?.company_name?.charAt(0) || 'S' }}</span>
+                                        </div>
+                                        <h2 class="text-2xl font-bold mt-0 text-foreground">{{ profile?.company_name || 'Perusahaan' }}</h2>
+                                    </div>
+                                    <div class="text-right flex flex-col items-end gap-2 text-foreground">
+                                        <h1 class="text-3xl font-bold tracking-wide uppercase text-primary" :style="{ color: profile?.color ? `${profile.color}` : '' }">Invoice</h1>
+                                        <span class="text-lg font-bold">{{ invoice.invoice_number }}</span>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <!-- Items Table -->
-                    <div class="mt-8 border-y-2 border-primary" :style="{ borderColor: profile?.color ? `${profile.color}` : '' }">
-                        <div class="hidden sm:grid grid-cols-12 gap-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                            <div class="col-span-6">Deskripsi</div>
-                            <div class="col-span-2 text-center">Qty</div>
-                            <div class="col-span-2 text-right">Harga Satuan</div>
-                            <div class="col-span-2 text-right">Total</div>
-                        </div>
-                        <div class="divide-y divide-border/20 border-t border-primary" :style="{ borderColor: profile?.color ? `${profile.color}` : '' }">
-                            <div v-for="item in invoice.items" :key="item.id" class="grid grid-cols-1 sm:grid-cols-12 gap-4 py-4 text-sm items-center">
-                                <div class="sm:col-span-6 font-medium text-foreground">{{ item.description }}</div>
-                                <div class="sm:col-span-2 sm:text-center text-muted-foreground">
-                                    {{ item.quantity.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                                <div class="h-px w-full bg-border/40 my-8"></div>
+
+                                <div class="grid grid-cols-2 gap-8 mb-10">
+                                    <div>
+                                        <h3 class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mr-4 mb-4">Kepada</h3>
+                                        <h4 class="text-lg font-bold mb-2 text-foreground">{{ invoice.client?.name }}</h4>
+                                        <div class="space-y-1.5 text-sm text-muted-foreground">
+                                            <p v-if="invoice.client?.company" class="flex items-center gap-2">
+                                                <Building2 class="h-3.5 w-3.5" /> {{ invoice.client.company }}
+                                            </p>
+                                            <p v-if="invoice.client?.email" class="flex items-center gap-2">
+                                                <Mail class="h-3.5 w-3.5" /> {{ invoice.client.email }}
+                                            </p>
+                                            <p v-if="invoice.client?.phone" class="flex items-center gap-2">
+                                                <Phone class="h-3.5 w-3.5" /> {{ invoice.client.phone }}
+                                            </p>
+                                            <p v-if="invoice.client?.address" class="flex items-start gap-2">
+                                                <MapPin class="h-3.5 w-3.5 mt-0.5" /> 
+                                                <span>{{ invoice.client.address }}</span>
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    <div class="space-y-3 text-right">
+                                        <div class="flex justify-end items-center gap-4 text-sm">
+                                            <span class="font-medium text-muted-foreground">Tanggal Terbit:</span>
+                                            <span class="font-bold text-foreground w-32 text-right">{{ formatDate(invoice.issue_date) }}</span>
+                                        </div>
+                                        <div class="flex justify-end items-center gap-4 text-sm">
+                                            <span class="font-medium text-destructive">Jatuh Tempo:</span>
+                                            <span class="font-bold text-destructive w-32 text-right">{{ formatDate(invoice.due_date) }}</span>
+                                        </div>
+                                        <div class="flex justify-end items-center gap-4 text-sm">
+                                            <span class="font-medium text-muted-foreground">Status:</span>
+                                            <div class="w-32 flex justify-end">
+                                                <Badge class="rounded-full px-3 py-0.5 text-xs font-medium bg-slate-100 text-slate-600 border-none">
+                                                    {{ invoice.label_status || invoice.status }}
+                                                </Badge>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="sm:col-span-2 sm:text-right text-muted-foreground">
-                                    {{ formatCurrency(item.unit_price) }}
+
+                                <!-- Items Table -->
+                                <div class="mt-8 border-y-2 border-primary" :style="{ borderColor: profile?.color ? `${profile.color}` : '' }">
+                                    <div class="grid grid-cols-12 gap-4 py-3 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+                                        <div class="col-span-6">Deskripsi</div>
+                                        <div class="col-span-2 text-center">Qty</div>
+                                        <div class="col-span-2 text-right">Harga Satuan</div>
+                                        <div class="col-span-2 text-right">Total</div>
+                                    </div>
+                                    <div class="divide-y divide-border/20 border-t border-primary" :style="{ borderColor: profile?.color ? `${profile.color}` : '' }">
+                                        <div v-for="item in invoice.items" :key="item.id" class="grid grid-cols-12 gap-4 py-4 text-sm items-center">
+                                            <div class="col-span-6 font-medium text-foreground">{{ item.description }}</div>
+                                            <div class="col-span-2 text-center text-muted-foreground">
+                                                {{ item.quantity.toLocaleString('id-ID', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) }}
+                                            </div>
+                                            <div class="col-span-2 text-right text-muted-foreground">
+                                                {{ formatCurrency(item.unit_price) }}
+                                            </div>
+                                            <div class="col-span-2 text-right font-bold text-foreground">
+                                                {{ formatCurrency(item.total) }}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                                <div class="sm:col-span-2 sm:text-right font-bold text-foreground">
-                                    {{ formatCurrency(item.total) }}
+
+                                <div class="h-px w-full bg-border/40 mb-8 mt-4"></div>
+
+                                <!-- Summary & Payment Info -->
+                                <div class="flex flex-row justify-between items-start gap-8 mt-4">
+                                    <div class="w-1/2">
+                                        <div v-if="profile?.bank_account_number" class="p-5 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
+                                            <h4 class="text-[10px] font-black uppercase tracking-[2px] text-slate-400 mb-3 underline decoration-primary/20 underline-offset-4">Rekening</h4>
+                                            <div class="space-y-1 text-sm font-medium">
+                                                <p class="font-bold text-slate-900 dark:text-white text-base">{{ profile.bank_name }}</p>
+                                                <p class="text-slate-500">No. Rek: <span class="text-slate-900 dark:text-white tracking-wider font-mono">{{ profile.bank_account_number }}</span></p>
+                                                <p class="text-slate-500">A.N: <span class="text-slate-900 dark:text-white">{{ profile.bank_account_name }}</span></p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="w-80 flex flex-col items-end space-y-3">
+                                        <div class="flex justify-between w-full text-sm">
+                                            <span class="text-muted-foreground">Subtotal</span>
+                                            <span class="font-bold text-foreground">{{ formatCurrency(invoice.subtotal) }}</span>
+                                        </div>
+                                        <div v-if="invoice.tax_rate > 0" class="flex justify-between w-full text-sm">
+                                            <span class="text-muted-foreground">Pajak ({{ invoice.tax_rate }}%)</span>
+                                            <span class="font-bold text-foreground">{{ formatCurrency(invoice.tax_amount) }}</span>
+                                        </div>
+                                        <div v-if="invoice.is_rounded && invoice.rounding_amount > 0" class="flex justify-between w-full text-sm">
+                                            <span class="text-muted-foreground">Pembulatan</span>
+                                            <span class="font-bold text-foreground">{{ formatCurrency(invoice.rounding_amount) }}</span>
+                                        </div>
+                                        <div class="flex justify-between w-full pt-4 border-t border-border/20 mt-2">
+                                            <span class="text-base font-bold text-foreground">Total</span>
+                                            <span class="text-2xl font-bold text-primary" :style="{ color: profile?.color ? `${profile.color}` : '' }">{{ formatCurrency(invoice.total_amount) }}</span>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
-                        </div>
-                    </div>
 
-                    <div class="h-px w-full bg-border/40 mb-8 mt-4"></div>
-
-                    <!-- Summary & Payment Info -->
-                    <div class="flex flex-col sm:flex-row justify-between items-start gap-8 mt-4">
-                        <div class="w-full sm:w-1/2">
-                            <div v-if="profile?.bank_account_number" class="py-2">
-                                <h4 class="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3">Informasi Pembayaran</h4>
-                                <div class="space-y-1 text-sm">
-                                    <p class="font-bold text-foreground">{{ profile.bank_name }}</p>
-                                    <p class="text-muted-foreground">No. Rek: <span class="font-bold text-foreground">{{ profile.bank_account_number }}</span></p>
-                                    <p class="text-muted-foreground">A.N: <span class="font-bold text-foreground">{{ profile.bank_account_name }}</span></p>
+                                <div v-if="invoice.notes || profile?.default_invoice_notes" class="mt-16 text-center">
+                                    <p class="text-sm text-muted-foreground flex items-center justify-center whitespace-pre-wrap">
+                                        {{ invoice.notes || profile?.default_invoice_notes }}
+                                    </p>
                                 </div>
-                            </div>
-                        </div>
-
-                        <div class="w-full sm:w-80 flex flex-col items-end space-y-3">
-                            <div class="flex justify-between w-full text-sm">
-                                <span class="text-muted-foreground">Subtotal</span>
-                                <span class="font-bold text-foreground">{{ formatCurrency(invoice.subtotal) }}</span>
-                            </div>
-                            <div v-if="invoice.tax_rate > 0" class="flex justify-between w-full text-sm">
-                                <span class="text-muted-foreground">Pajak ({{ invoice.tax_rate }}%)</span>
-                                <span class="font-bold text-foreground">{{ formatCurrency(invoice.tax_amount) }}</span>
-                            </div>
-                            <div v-if="invoice.is_rounded && invoice.rounding_amount > 0" class="flex justify-between w-full text-sm">
-                                <span class="text-muted-foreground">Pembulatan</span>
-                                <span class="font-bold text-foreground">{{ formatCurrency(invoice.rounding_amount) }}</span>
-                            </div>
-                            <div class="flex justify-between w-full pt-4 border-t border-border/20 mt-2">
-                                <span class="text-base font-bold text-foreground">Total</span>
-                                <span class="text-2xl font-bold text-primary" :style="{ color: profile?.color ? `${profile.color}` : '' }">{{ formatCurrency(invoice.total_amount) }}</span>
-                            </div>
-                        </div>
+                            </CardContent>
+                        </Card>
                     </div>
-
-                    <div v-if="invoice.notes || profile?.default_invoice_notes" class="mt-16 text-center">
-                        <p class="text-sm text-muted-foreground flex items-center justify-center whitespace-pre-wrap">
-                            {{ invoice.notes || profile?.default_invoice_notes }}
-                        </p>
-                    </div>
-                </CardContent>
-                </Card>
-            </div>
+                </div>
 
                 <!-- Right side Panel (Activity/Details) -->
-                <div class="space-y-8">
+                <div class="space-y-8 print-hidden">
                     <!-- Payment Status Card -->
-                    <div class="card border-0 bg-card shadow-card rounded-[24px] overflow-hidden p-6">
+                    <div class="card border-0 bg-card shadow-card rounded-[16px] sm:rounded-[24px] overflow-hidden p-4 sm:p-6">
                         <h3 class="text-sm font-bold mb-4 flex items-center gap-2">
                             <Clock class="h-4 w-4 text-primary" />
                             Status Pembayaran
@@ -385,7 +434,7 @@ function deleteInvoice() {
                     </div>
 
                     <!-- Payment History Section -->
-                    <div class="card border-0 bg-card shadow-card rounded-[24px] overflow-hidden p-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
+                    <div class="card border-0 bg-card shadow-card rounded-[16px] sm:rounded-[24px] overflow-hidden p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-500 delay-200">
                         <h3 class="text-sm font-bold mb-4 flex items-center gap-2">
                             <Banknote class="h-4 w-4 text-primary" />
                             Riwayat Pembayaran
@@ -406,6 +455,9 @@ function deleteInvoice() {
                                             <FileText class="h-4 w-4 text-primary" />
                                         </Button>
                                     </Link>
+                                    <Button variant="ghost" size="icon" class="h-9 w-9 rounded-lg hover:bg-destructive/10 transition-all" title="Hapus Pembayaran" @click="deletePayment(payment.id)">
+                                        <Trash2 class="h-4 w-4 text-muted-foreground hover:text-destructive" />
+                                    </Button>
                                 </div>
                             </div>
                         </div>
@@ -418,13 +470,18 @@ function deleteInvoice() {
                     </div>
                     
                     <!-- Quick Actions Sidebar Card -->
-                    <div class="card border-0 bg-card shadow-card rounded-[24px] overflow-hidden p-6">
-                        <h3 class="text-sm font-bold mb-4">Sharing & Export</h3>
+                    <div class="card border-0 bg-card shadow-card rounded-[16px] sm:rounded-[24px] overflow-hidden p-4 sm:p-6">
+                        <h3 class="text-sm font-bold mb-4">Bagikan & Ekspor</h3>
                         <div class="grid grid-cols-1 gap-2">
+                            <Button @click="sendViaWhatsApp" variant="default" class="justify-start h-11 rounded-lg gap-3 bg-green-600 hover:bg-green-700 text-white shadow-sm border-0 transition-all">
+                                <Phone class="h-4 w-4" />
+                                <span class="text-sm font-medium">WhatsApp Ke Klien</span>
+                            </Button>
+                            
                              <Button @click="shareAsImage" :disabled="isGeneratingImage" variant="outline" class="justify-start h-11 rounded-lg gap-3 border bg-background hover:bg-muted transition-all text-foreground">
                                 <ImageIcon v-if="!isGeneratingImage" class="h-4 w-4 text-muted-foreground" />
                                 <Clock v-else class="h-4 w-4 animate-spin text-muted-foreground" />
-                                <span class="text-sm font-medium">{{ isGeneratingImage ? 'Memproses...' : 'Share Image' }}</span>
+                                <span class="text-sm font-medium">{{ isGeneratingImage ? 'Memproses...' : 'Bagikan Gambar' }}</span>
                             </Button>
                         </div>
                     </div>
@@ -540,3 +597,24 @@ function deleteInvoice() {
         </div>
     </AppLayout>
 </template>
+
+<style scoped>
+.invoice-font {
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+}
+
+@media print {
+    .print-hidden {
+        display: none !important;
+    }
+
+    .grid.lg\:grid-cols-3 {
+        display: block !important;
+    }
+
+    .lg\:col-span-2 {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+}
+</style>

@@ -46,7 +46,7 @@ function printInvoice() {
     <AppLayout :breadcrumbs="breadcrumbs">
         <div class="flex h-full flex-1 flex-col p-0 text-foreground bg-white dark:bg-slate-910">
             <!-- Premium Preview Header (Sticky) -->
-            <div class="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-border/40 px-6 py-4 flex items-center justify-between print:hidden">
+            <div class="sticky top-0 z-50 bg-white dark:bg-slate-900 border-b border-border/40 px-3 sm:px-6 py-3 sm:py-4 flex items-center justify-between print:hidden">
                 <div class="flex items-center gap-4">
                     <Button variant="ghost" size="icon" class="rounded-xl" @click="router.visit(`/invoices/${invoice.id}`)">
                         <ArrowLeft class="h-5 w-5" />
@@ -57,23 +57,23 @@ function printInvoice() {
                     </div>
                 </div>
 
-                <div class="flex items-center gap-3">
-                    <Button variant="outline" class="h-10 rounded-xl gap-2 border-border/60 hover:bg-secondary/80" @click="printInvoice">
+                <div class="flex items-center gap-2 sm:gap-3">
+                    <Button variant="outline" class="h-9 sm:h-10 rounded-xl gap-1.5 sm:gap-2 border-border/60 hover:bg-secondary/80 px-2.5 sm:px-4" @click="printInvoice">
                         <Printer class="h-4 w-4" />
-                        <span class="text-xs font-bold uppercase tracking-wider">Cetak</span>
+                        <span class="text-xs font-bold uppercase tracking-wider hidden sm:inline">Cetak</span>
                     </Button>
                     <a :href="`/invoices/${invoice.id}/pdf`">
-                        <Button variant="default" class="h-10 rounded-xl gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
+                        <Button variant="default" class="h-9 sm:h-10 rounded-xl gap-1.5 sm:gap-2 bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 px-2.5 sm:px-4">
                             <Download class="h-4 w-4" />
-                            <span class="text-xs font-bold uppercase tracking-wider">Download PDF</span>
+                            <span class="text-xs font-bold uppercase tracking-wider">PDF</span>
                         </Button>
                     </a>
                 </div>
             </div>
 
             <!-- Paper-style Preview Container -->
-            <div class="flex-1 overflow-y-auto p-8 lg:p-12 flex justify-center">
-                <div class="w-full max-w-[210mm] min-h-[297mm] bg-white dark:bg-slate-900 shadow-[0_0_50px_-12px_rgba(0,0,0,0.12)] rounded-[2px] p-[15mm] relative print:m-0 print:p-0 print:shadow-none print:w-full print:bg-white text-slate-800 dark:text-slate-200">
+            <div class="flex-1 overflow-y-auto p-4 sm:p-8 lg:p-12 flex justify-center">
+                <div class="w-full max-w-[210mm] min-h-[297mm] bg-white dark:bg-slate-900 shadow-[0_0_50px_-12px_rgba(0,0,0,0.12)] rounded-[2px] p-[8mm] sm:p-[15mm] relative print:m-0 print:p-0 print:shadow-none print:w-full print:bg-white text-slate-800 dark:text-slate-200">
                     
                     <!-- Watermark Lunas -->
                     <div v-if="invoice.status === 'paid'" class="absolute top-[40%] left-[50%] -translate-x-1/2 -translate-y-1/2 -rotate-[30deg] pointer-events-none opacity-[0.06] select-none">
@@ -81,8 +81,8 @@ function printInvoice() {
                     </div>
 
                     <!-- Header Section -->
-                    <div class="flex justify-between items-start mb-16 relative z-10">
-                        <div class="max-w-[60%]">
+                    <div class="flex justify-between items-start mb-8 sm:mb-16 relative z-10">
+                        <div class="max-w-[55%] sm:max-w-[60%]">
                             <div class="mb-6">
                                 <img v-if="profile.logo_url" :src="profile.logo_url" alt="Logo" class="max-h-12 w-auto mb-4 block" />
                                 <h2 class="text-[24px] font-bold text-slate-900 dark:text-white leading-tight">{{ profile.company_name || 'Dashboard' }}</h2>
@@ -104,7 +104,7 @@ function printInvoice() {
                     </div>
 
                     <!-- Client & Info Section -->
-                    <div class="grid grid-cols-2 gap-12 mb-16 relative z-10">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6 sm:gap-12 mb-8 sm:mb-16 relative z-10">
                         <div>
                             <h3 class="text-[10px] font-black uppercase tracking-[2px] text-slate-400 mb-4">Tagihan Kepada</h3>
                             <h4 class="text-base font-black text-slate-900 dark:text-white mb-3">{{ invoice.client?.name }}</h4>
@@ -168,7 +168,7 @@ function printInvoice() {
                     </div>
 
                     <!-- Totals Area -->
-                    <div class="flex gap-8 justify-between relative z-10">
+                    <div class="flex flex-col sm:flex-row gap-4 sm:gap-8 justify-between relative z-10">
                         <div class="w-full sm:w-1/2">
                             <div v-if="profile?.bank_account_number" class="p-6 bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-slate-100 dark:border-slate-800">
                                 <h4 class="text-[10px] font-black uppercase tracking-[2px] text-slate-400 mb-3 underline decoration-primary/20 underline-offset-4">Rekening</h4>
@@ -179,7 +179,7 @@ function printInvoice() {
                                 </div>
                             </div>
                         </div>
-                        <div class="w-72 space-y-2.5">
+                        <div class="w-full sm:w-72 space-y-2.5">
                             <div class="flex justify-between items-center py-1 px-4 border-b border-slate-50 dark:border-slate-800">
                                 <span class="text-[11px] font-medium text-slate-500">Subtotal</span>
                                 <span class="text-[11px] font-bold text-slate-900 dark:text-white">{{ formatCurrency(invoice.subtotal) }}</span>

@@ -44,9 +44,17 @@ class InvoiceController extends Controller
                 'total_amount' => (float) $invoice->total_amount,
             ]);
 
+        $stats = [
+            'total_paid' => $request->user()->invoices()->where('status', 'paid')->sum('total_amount'),
+            'total_unpaid' => $request->user()->invoices()->whereIn('status', ['sent', 'overdue'])->sum('total_amount'),
+            'total_draft' => $request->user()->invoices()->where('status', 'draft')->sum('total_amount'),
+            'count_unpaid' => $request->user()->invoices()->whereIn('status', ['sent', 'overdue'])->count(),
+        ];
+
         return Inertia::render('Invoices/Index', [
             'invoices' => $invoices,
             'filters' => $filters,
+            'stats' => $stats,
             'currency' => $request->user()->profile?->currency ?? 'IDR',
         ]);
     }
@@ -66,12 +74,24 @@ class InvoiceController extends Controller
         }
         $invoiceNumber = $prefix . '-' . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
 
+        $orders = $request->user()->orders()
+            ->with('client:id,name')
+            ->latest('created_at')
+            ->get(['id', 'order_number', 'title', 'client_id'])
+            ->map(fn ($ord) => [
+                'id' => $ord->id,
+                'label' => $ord->order_number . ' — ' . $ord->title . ' (' . ($ord->client?->name ?? '-') . ')',
+            ]);
+
         return Inertia::render('Invoices/Form', [
             'clients' => $clients,
+            'orders' => $orders,
             'invoiceNumber' => $invoiceNumber,
             'defaultTaxRate' => (float) ($profile?->default_tax_rate ?? 0),
             'defaultNotes' => $profile?->default_invoice_notes ?? '',
             'currency' => $profile?->currency ?? 'IDR',
+            'defaultClientId' => $request->query('client_id'),
+            'defaultOrderId' => $request->query('order_id'),
         ]);
     }
 
@@ -79,6 +99,7 @@ class InvoiceController extends Controller
     {
         $validated = $request->validate([
             'client_id' => 'required|uuid|exists:clients,id',
+            'order_id' => 'nullable|uuid|exists:orders,id',
             'invoice_number' => 'required|string|max:50',
             'issue_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:issue_date',
@@ -102,6 +123,7 @@ class InvoiceController extends Controller
 
         $invoice = $request->user()->invoices()->create([
             'client_id' => $validated['client_id'],
+            'order_id' => $validated['order_id'] ?? null,
             'invoice_number' => $validated['invoice_number'],
             'issue_date' => $validated['issue_date'],
             'due_date' => $validated['due_date'],
@@ -156,11 +178,20 @@ class InvoiceController extends Controller
 
         $invoice->load('items');
         $clients = $request->user()->clients()->orderBy('name')->get(['id', 'name', 'email']);
+        $orders = $request->user()->orders()
+            ->with('client:id,name')
+            ->latest('created_at')
+            ->get(['id', 'order_number', 'title', 'client_id'])
+            ->map(fn ($ord) => [
+                'id' => $ord->id,
+                'label' => $ord->order_number . ' — ' . $ord->title . ' (' . ($ord->client?->name ?? '-') . ')',
+            ]);
         $profile = $request->user()->profile;
 
         return Inertia::render('Invoices/Form', [
             'invoice' => $invoice,
             'clients' => $clients,
+            'orders' => $orders,
             'invoiceNumber' => $invoice->invoice_number,
             'defaultTaxRate' => (float) $invoice->tax_rate,
             'defaultNotes' => $invoice->notes ?? '',
@@ -174,6 +205,7 @@ class InvoiceController extends Controller
 
         $validated = $request->validate([
             'client_id' => 'required|uuid|exists:clients,id',
+            'order_id' => 'nullable|uuid|exists:orders,id',
             'issue_date' => 'required|date',
             'due_date' => 'required|date|after_or_equal:issue_date',
             'status' => 'required|in:draft,sent,paid,overdue,cancelled',
@@ -196,6 +228,7 @@ class InvoiceController extends Controller
 
         $invoice->update([
             'client_id' => $validated['client_id'],
+            'order_id' => $validated['order_id'] ?? null,
             'issue_date' => $validated['issue_date'],
             'due_date' => $validated['due_date'],
             'status' => $validated['status'],
@@ -308,6 +341,31 @@ class InvoiceController extends Controller
         }
 
         return back()->with('success', 'Pembayaran berhasil dicatat.');
+    }
+
+    public function destroyPayment(Invoice $invoice, \App\Models\Payment $payment): RedirectResponse
+    {
+        $this->authorize('update', $invoice);
+
+        // Ensure the payment belongs to this invoice
+        if ($payment->invoice_id !== $invoice->id) {
+            abort(404);
+        }
+
+        // Delete proof file if exists
+        if ($payment->proof_path) {
+            \Illuminate\Support\Facades\Storage::disk('public')->delete($payment->proof_path);
+        }
+
+        $payment->delete();
+
+        // Recalculate invoice status
+        $invoice->refresh();
+        if ($invoice->balance_due > 0 && $invoice->status === 'paid') {
+            $invoice->update(['status' => 'sent']);
+        }
+
+        return back()->with('success', 'Pembayaran berhasil dihapus.');
     }
 
     public function receipt(Request $request, Invoice $invoice): Response

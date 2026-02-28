@@ -14,6 +14,7 @@ class Invoice extends Model
 
     protected $fillable = [
         'user_id',
+        'order_id',
         'client_id',
         'invoice_number',
         'issue_date',
@@ -52,6 +53,11 @@ class Invoice extends Model
         return $this->belongsTo(Client::class);
     }
 
+    public function order(): BelongsTo
+    {
+        return $this->belongsTo(Order::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(InvoiceItem::class);
@@ -60,6 +66,11 @@ class Invoice extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    public function expenses(): HasMany
+    {
+        return $this->hasMany(Expense::class);
     }
 
     // --- Dynamic Document Logic ---
